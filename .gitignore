@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+
+# Prisma SQLite DB
+prisma/dev.db
+prisma/dev.db-journal
+
+# Env files
+.env
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Media uploads
+uploads/

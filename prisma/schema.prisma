@@ -1,0 +1,249 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = "file:./dev.db"
+}
+
+enum FormPermissions {
+    SOL // Solution Implementation
+    API // API Integration
+    EXP // Hire Smartsheet Expert
+    ADM // System Admin Support
+    REP // Reports Dashboard
+    PRM // Premium App Support
+    ONE // Book One on One
+    PMO // PMO Control Center
+    LIR // License Request
+}
+
+model Admin {
+    id               String    @id @default(cuid())
+    name             String
+    email            String    @unique
+    password         String
+    is_active        Boolean   @default(false)
+    is_super_admin   Boolean   @default(false)
+    access_token     String?
+    last_login       DateTime?
+    generated_otp    Int?
+    otp_generated_at DateTime?
+    created_at       DateTime  @default(now())
+    updated_at       DateTime  @updatedAt
+    permissions      String
+}
+
+// ---- unique check on email if its active or else not needed ----
+model User {
+    id               String    @id @default(cuid())
+    name             String
+    email            String
+    is_active        Boolean   @default(false)
+    password         String
+    phone            String
+    company_name     String
+    access_token     String?
+    last_login       DateTime?
+    generated_otp    Int?
+    otp_generated_at DateTime?
+    user_type        String    @default("customer")
+    certificate_link String?
+    domain_expertise String
+    created_at       DateTime  @default(now())
+    updated_at       DateTime  @updatedAt
+
+    conversations Conversation[]
+    submissions   FormSubmission[]
+}
+
+// ---- FORMS MODELS ----
+model FormSubmission {
+    id         Int             @id @default(autoincrement())
+    form_type  FormPermissions
+    created_at DateTime        @default(now())
+    updated_at DateTime        @updatedAt
+
+    // Relation to user
+    user_id String
+    user    User   @relation(fields: [user_id], references: [id])
+
+    // Relations to specific form details (one-to-one)
+    solution_implementation SolutionImplementation?
+    api_integration         ApiIntegration?
+    hire_smartsheet_expert  HireSmartsheetExpert?
+    system_admin_support    SystemAdminSupport?
+    reports_dashboard       ReportsDashboard?
+    premium_app_support     PremiumAppSupport?
+    book_one_on_one         BookOneOnOne?
+    pmo_control_center      PmoControlCenter?
+    license_request         LicenseRequest?
+
+    conversation Conversation?
+}
+
+model SolutionImplementation {
+    id                 Int     @id @default(autoincrement())
+    project_name       String
+    project_type       String
+    industry           String
+    project_goals      String
+    timeline           String
+    requirements       String?
+    budget             String
+    contact_preference String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model ApiIntegration {
+    id                    Int     @id @default(autoincrement())
+    integration_type      String
+    target_application    String
+    integration_objective String
+    timeline              String
+    budget                String?
+    instructions          String?
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model HireSmartsheetExpert {
+    id                 Int      @id @default(autoincrement())
+    requirements       String
+    is_full_time       Boolean
+    project_scope      String
+    expected_duration  String
+    domain_focus       String
+    start_date         DateTime
+    additional_notes   String?
+    contact_preference String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model SystemAdminSupport {
+    id                 Int      @id @default(autoincrement())
+    company_name       String
+    number_of_users    Int
+    type_of_support    String
+    start_date         DateTime
+    budget             String?
+    support_needs      String
+    contact_preference String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model ReportsDashboard {
+    id                 Int     @id @default(autoincrement())
+    request_type       String
+    requirements       String
+    attachment         String?
+    timeline           String
+    instructions       String?
+    contact_preference String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model PremiumAppSupport {
+    id                   Int      @id @default(autoincrement())
+    add_on_to_configure  String
+    objective            String
+    current_setup_status String
+    integration_needs    String
+    smartsheet_plan      String
+    start_date           DateTime
+    instruction          String
+    contact_preference   String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model BookOneOnOne {
+    id                         Int    @id @default(autoincrement())
+    consultation_focus         String
+    time_slot                  String
+    time_zone                  String
+    preferred_meeting_platform String
+
+    full_name      String
+    company_name   String
+    business_email String
+    phone_number   String?
+    agenda         String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model PmoControlCenter {
+    id                      Int     @id @default(autoincrement())
+    service_type            String
+    industry                String
+    project_details         String
+    expected_projects       Int
+    smartsheet_admin_access String
+    current_setup           Boolean
+    timeline                String
+    additional_notes        String?
+    contact_preference      String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+model LicenseRequest {
+    name               String
+    company_email      String
+    license_type       String
+    premium_add_ons    String
+    instructions       String
+    number_of_licenses String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+}
+
+// ---- MESSENGER MODELS ----
+model Conversation {
+    id         String   @id @default(uuid())
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    user_id String
+    user    User   @relation(fields: [user_id], references: [id])
+
+    form_id Int            @unique
+    form    FormSubmission @relation(fields: [form_id], references: [id], onDelete: Cascade)
+
+    messages Message[] // One-to-many relationship
+}
+
+enum MessageType {
+    TEXT
+    MEDIA
+    PROMPT
+}
+
+model Message {
+    id           Int         @id @default(autoincrement())
+    body         String?
+    time         DateTime    @default(now())
+    media_url    String?
+    media_type   String? // e.g., image, video, audio, etc.
+    message_type MessageType
+
+    conversation_id String
+    conversation    Conversation @relation(fields: [conversation_id], references: [id])
+
+    sender_id String
+}
