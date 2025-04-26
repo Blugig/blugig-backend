@@ -50,9 +50,6 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
         const { name, email, password, permissions, is_super_admin } = req.body;
         
         const perms = permissions.split(',');
-        if (is_super_admin) {
-            perms.push('SUPER');
-        } 
 
         const admin = await prisma.admin.create({
             data: {
@@ -60,6 +57,7 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
                 email,
                 password,
                 permissions: perms,
+                is_super_admin: is_super_admin ? true : false,
             },
         });
 
