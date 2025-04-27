@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 
-export const generateAccessToken = (uid: string, userType?: string) => {
+export const generateAccessToken = (uid: number, userType?: string) => {
     return jwt.sign(
         { userId: uid, userType: userType || "" },
         process.env.JWT_SECRET as string,

@@ -37,7 +37,7 @@ model Admin {
 
 // ---- unique check on email if its active or else not needed ----
 model User {
-    id               String    @id @default(cuid())
+    id               Int       @id @default(autoincrement())
     name             String
     email            String
     is_active        Boolean   @default(false)
@@ -53,6 +53,7 @@ model User {
     domain_expertise String
     created_at       DateTime  @default(now())
     updated_at       DateTime  @updatedAt
+    deleted_at       DateTime?
 
     conversations Conversation[]
     submissions   FormSubmission[]
@@ -66,8 +67,8 @@ model FormSubmission {
     updated_at DateTime        @updatedAt
 
     // Relation to user
-    user_id String
-    user    User   @relation(fields: [user_id], references: [id])
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
 
     // Relations to specific form details (one-to-one)
     solution_implementation SolutionImplementation?
@@ -219,8 +220,8 @@ model Conversation {
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 
-    user_id String
-    user    User   @relation(fields: [user_id], references: [id])
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
 
     form_id Int            @unique
     form    FormSubmission @relation(fields: [form_id], references: [id], onDelete: Cascade)
@@ -245,5 +246,5 @@ model Message {
     conversation_id String
     conversation    Conversation @relation(fields: [conversation_id], references: [id])
 
-    sender_id String
+    sender_id Int
 }

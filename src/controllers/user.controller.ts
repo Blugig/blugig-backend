@@ -288,7 +288,8 @@ export const deleteUser = async (req: Request, res: CustomResponse) => {
             data: {
                 is_active: false,
                 email: newEmail,
-                access_token: null
+                access_token: null,
+                deleted_at: new Date()
             }
         });
 
