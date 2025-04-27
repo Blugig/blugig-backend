@@ -193,7 +193,7 @@ model PmoControlCenter {
     project_details         String
     expected_projects       Int
     smartsheet_admin_access String
-    current_setup           Boolean
+    current_setup           String
     timeline                String
     additional_notes        String?
     contact_preference      String

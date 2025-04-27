@@ -19,7 +19,7 @@ class FormController {
             const result = await prisma.$transaction(async (tx) => {
                 const formSubmission = await tx.formSubmission.create({
                     data: {
-                        user_id: userId,
+                        user_id: parseInt(userId),
                         form_type: formType
                     }
                 });

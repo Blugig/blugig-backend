@@ -10,7 +10,8 @@ import {
     uploadFile,
     getUserProfile,
     updateUser,
-    deleteUser
+    deleteUser,
+    getHistory
 } from '../controllers/user.controller';
 import { authenticate } from '../middleware/authenticate';
 import upload from '../lib/fileUpload';
@@ -27,8 +28,9 @@ userRouter.post('/forgot-password', authenticate, forgotPassword);
 // User management routes
 userRouter.get('/', getAllUsers);
 
-userRouter.post('/file-upload', authenticate, upload.single('file'), uploadFile)
+userRouter.post('/file-upload', authenticate, upload.single('file'), uploadFile);
 userRouter.get('/get-profile', authenticate, getUserProfile);
+userRouter.get('/history', authenticate, getHistory);
 userRouter.post('/update-profile', authenticate, updateUser);
 userRouter.post('/delete-user', authenticate, deleteUser);
 

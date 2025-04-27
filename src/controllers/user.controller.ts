@@ -6,6 +6,7 @@ import CustomResponse from '../utils/customResponse';
 import sendVerificationEmail, { generateAccessToken } from '../utils/sendMail';
 import { basicUserFields } from '../lib/serializers/user';
 import { generateFileUrl } from '../lib/fileUpload';
+import { getFormDescriptionKey, getFormName } from '../utils/misc';
 
 export const register = async (req: Request, res: CustomResponse) => {
     try {
@@ -258,6 +259,77 @@ export const getUserProfile = async (req: Request, res: CustomResponse) => {
         res.failure("Failed to fetch user", error, 500);
     }
 };
+
+export const getHistory = async (req: Request, res: CustomResponse) => {
+    try {
+        const { id } = (req as any).user;
+
+        const formSubmissions = await prisma.formSubmission.findMany({
+            where: { user_id: parseInt(id) },
+            orderBy: { created_at: 'desc' },
+            include: {
+                solution_implementation: true,
+                api_integration: true,
+                hire_smartsheet_expert: true,
+                system_admin_support: true,
+                reports_dashboard: true,
+                premium_app_support: true,
+                book_one_on_one: true,
+                pmo_control_center: true,
+                license_request: true,
+                conversation: true
+            }
+        });
+
+        const history = formSubmissions.map(submission => {
+            let details: any;
+            switch (submission.form_type) {
+                case 'SOL':
+                    details = submission.solution_implementation;
+                    break;
+                case 'API':
+                    details = submission.api_integration;
+                    break;
+                case 'EXP':
+                    details = submission.hire_smartsheet_expert;
+                    break;
+                case 'ADM':
+                    details = submission.system_admin_support;
+                    break;
+                case 'REP':
+                    details = submission.reports_dashboard;
+                    break;
+                case 'PRM':
+                    details = submission.premium_app_support;
+                    break;
+                case 'ONE':
+                    details = submission.book_one_on_one;
+                    break;
+                case 'PMO':
+                    details = submission.pmo_control_center;
+                    break;
+                case 'LIR':
+                    details = submission.license_request;
+                    break;
+            }
+
+            return {
+                created_at: submission.created_at,
+                form_id: submission.id,
+                form_type: submission.form_type,
+                form_name: getFormName(submission.form_type),
+                form_title: "KYA DU ISME BRIJESH BHAIIIIIII",
+                form_description: details[getFormDescriptionKey(submission.form_type)] || null,
+                conversation_uuid: submission.conversation?.id || null
+            };
+        });
+
+        return res.success('Form history retrieved successfully', history);
+
+    } catch (error) {
+        res.failure("Failed to fetch history", error, 500);
+    }
+}
 
 // Update User
 export const updateUser = async (req: Request, res: CustomResponse) => {
