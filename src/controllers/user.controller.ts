@@ -22,6 +22,11 @@ export const register = async (req: Request, res: CustomResponse) => {
 
         const hashed_password = await bcrypt.hash(password, 14);
 
+        // Deleting users with same email but inactive state
+        await prisma.user.deleteMany({
+            where: { email, is_active: false }
+        });
+
         const user = await prisma.user.create({
             data: {
                 ...rest,
@@ -58,7 +63,7 @@ export const login = async (req: Request, res: CustomResponse) => {
 
         // Find user
         const user = await prisma.user.findFirst({
-            where: { email }
+            where: { email, is_active: true },
         });
 
         if (!user) {
