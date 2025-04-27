@@ -32,7 +32,16 @@ export const register = async (req: Request, res: CustomResponse) => {
             }
         });
 
-        res.success("User registered successfully.", {
+        const generated_otp = Math.floor(100000 + Math.random() * 900000);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { generated_otp, otp_generated_at: new Date() }
+        });
+
+        sendVerificationEmail(user.email, user.name, generated_otp);
+
+        res.success("Email sent to user", {
             id: user.id,
             email: user.email,
             user_type: user.user_type,
@@ -90,10 +99,10 @@ export const login = async (req: Request, res: CustomResponse) => {
 
 export const getEmail = async (req: Request, res: CustomResponse) => {
     try {
-        const { uid } = req.body;
+        const { email } = req.body;
 
         const user = await prisma.user.findFirst({
-            where: { id: uid }
+            where: { email, is_active: true }
         });
 
         if (!user) {
@@ -103,13 +112,16 @@ export const getEmail = async (req: Request, res: CustomResponse) => {
         const generated_otp = Math.floor(100000 + Math.random() * 900000);
 
         await prisma.user.update({
-            where: { id: uid },
+            where: { id: user.id },
             data: { generated_otp, otp_generated_at: new Date() }
         });
 
         sendVerificationEmail(user.email, user.name, generated_otp);
 
-        res.success("Email sent successfully", null, 200);
+        res.success("Email sent successfully", {
+            id: user.id,
+            email: user.email,
+        }, 200);
     } catch (error) {
         res.failure("Failed to get email", error, 500);
     }

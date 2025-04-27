@@ -192,7 +192,7 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
         console.log(id);
 
         const user = await prisma.user.findUnique({
-            where: { id },
+            where: { id: parseInt(id) },
             select: {
                 ...basicUserFields,
                 last_login: true
