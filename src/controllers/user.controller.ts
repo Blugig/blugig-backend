@@ -107,7 +107,7 @@ export const getEmail = async (req: Request, res: CustomResponse) => {
     try {
         const { type } = req.body;
 
-        let user;
+        let user: any;
 
         if (type === 'forgot-password') {
             const { email } = req.body;
