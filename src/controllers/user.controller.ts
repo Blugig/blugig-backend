@@ -105,11 +105,21 @@ export const login = async (req: Request, res: CustomResponse) => {
 
 export const getEmail = async (req: Request, res: CustomResponse) => {
     try {
-        const { email } = req.body;
+        const { type } = req.body;
 
-        const user = await prisma.user.findFirst({
-            where: { email, is_active: true }
-        });
+        let user;
+
+        if (type === 'forgot-password') {
+            const { email } = req.body;
+            user = await prisma.user.findFirst({
+                where: { email, is_active: true }
+            });
+        } else if (type === 'create-account') {
+            const { uid, email } = req.body;
+            user = await prisma.user.findFirst({
+                where: { id: uid, email }
+            });
+        }
 
         if (!user) {
             return res.failure("User not found", null, 404);
