@@ -4,6 +4,29 @@ import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import { createPaginatedResponse, getPagination } from '../../utils/queryHelpers';
 
+export const getProfile = async (req: Request, res: CustomResponse) => {
+    try {
+        const { id } = (req as any).user;
+
+        const admin = await prisma.admin.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                is_super_admin: true,
+                permissions: true,
+                created_at: true,
+                last_login: true,
+            }
+        });
+
+        res.success("Profile fetched successfully", admin, 200);
+    } catch (error) {
+        res.failure("Failed to fetch profile", error, 500);
+    }
+}
+
 export const getAllAdmins = async (req: Request, res: CustomResponse) => {
     try {
         const admins = await prisma.admin.findMany({
@@ -48,7 +71,7 @@ export const getAdminDetails = async (req: Request, res: CustomResponse) => {
 export const addAdmin = async (req: Request, res: CustomResponse) => {
     try {
         const { name, email, password, permissions, is_super_admin } = req.body;
-        
+
         const perms = permissions.split(',');
 
         const admin = await prisma.admin.create({
@@ -63,14 +86,14 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
 
         res.success("Admin added successfully", admin, 200);
     } catch (error) {
-        res.failure("Failed to add admin", error, 500); 
+        res.failure("Failed to add admin", error, 500);
     }
 }
 
 export const updateAdmin = async (req: Request, res: CustomResponse) => {
     try {
 
-        const { email, permissions } = req.body; 
+        const { email, permissions } = req.body;
 
         const admin = await prisma.admin.update({
             where: { email },

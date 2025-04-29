@@ -247,6 +247,7 @@ export const uploadFile = async (req: Request, res: CustomResponse) => {
             media_type: file!.mimetype,
         });
     } catch (error) {
+        console.log(error);
         res.failure("Failed to upload file", error, 500);
     }
 }

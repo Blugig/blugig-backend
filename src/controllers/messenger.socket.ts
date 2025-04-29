@@ -12,26 +12,40 @@ export const socketHandler = (io: Server) => {
         });
 
         // Handle sending a message
-        socket.on('send_message', async ({ conversation_id, sender_id, body, message_type, media_url, media_type }) => {
-            console.log("aaya message");
-            
+        socket.on('send_message', async (data) => {
             try {
+                console.log(data);
+                const messageData: any = {
+                    body: data?.body,
+                    message_type: data.message_type,
+                    media_url: data?.media_url,
+                    media_type: data?.media_type,
+                    conversation_id: data.conversation_id,
+                    time: new Date(),
+                };
+
+                // Check sender_role: 'user' or 'admin'
+                if (data.sender_role === 'user') {
+                    messageData.sender_user_id = parseInt(data.sender_id); // Make sure it's int
+                } else if (data.sender_role === 'admin') {
+                    messageData.sender_admin_id = data.sender_id; // String
+                } else {
+                    throw new Error('Invalid sender role');
+                }
+
+                // Save the new message
                 const new_message = await prisma.message.create({
-                    data: {
-                        body,
-                        message_type,
-                        media_url,
-                        media_type,
-                        conversation_id,
-                        sender_id,
-                        time: new Date(),
-                    },
+                    data: messageData,
                 });
 
-                socket.to(conversation_id).emit('new_message', new_message);
+                console.log(new_message);
+
+                // Emit the message to others in the room
+                socket.to(data.conversation_id).emit('new_message', new_message);
+
             } catch (error) {
                 console.error('Error saving message:', error);
-                socket.emit('error', { message: 'Message send failed' });
+                // socket.emit('error', { message: 'Message send failed' });
             }
         });
 

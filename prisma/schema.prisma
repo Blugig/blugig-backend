@@ -33,6 +33,7 @@ model Admin {
     created_at       DateTime  @default(now())
     updated_at       DateTime  @updatedAt
     permissions      String
+    Message          Message[]
 }
 
 // ---- unique check on email if its active or else not needed ----
@@ -57,6 +58,7 @@ model User {
 
     conversations Conversation[]
     submissions   FormSubmission[]
+    Message       Message[]
 }
 
 // ---- FORMS MODELS ----
@@ -246,5 +248,9 @@ model Message {
     conversation_id String
     conversation    Conversation @relation(fields: [conversation_id], references: [id])
 
-    sender_id Int
+    sender_user_id Int?
+    sender_user    User? @relation(fields: [sender_user_id], references: [id])
+
+    sender_admin_id String?
+    sender_admin    Admin?  @relation(fields: [sender_admin_id], references: [id])
 }
