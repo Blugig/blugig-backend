@@ -180,7 +180,7 @@ class FormController {
             }
 
             const formSubmission = await prisma.formSubmission.findUnique({
-                where: { id: formId },
+                where: { id: +formId },
                 include: {
                     solution_implementation: formType === 'SOL',
                     api_integration: formType === 'API',
@@ -190,19 +190,63 @@ class FormController {
                     premium_app_support: formType === 'PRM',
                     book_one_on_one: formType === 'ONE',
                     pmo_control_center: formType === 'PMO',
-                    license_request: formType === 'LIR'
+                    license_request: formType === 'LIR',
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone: true
+                        }
+                    },
+                    conversation: {
+                        select: {
+                            id: true,
+                            user_id: true,
+                            messages: true
+                        }
+                    }
                 }
             });
 
             if (!formSubmission) {
-                return res.failure('Form not found', { id: formId }, 404);
+                return res.failure("Form not found", { formId }, 404);
+            }
+
+            let details: any;
+            switch (formType) {
+                case 'SOL': details = formSubmission.solution_implementation; break;
+                case 'API': details = formSubmission.api_integration; break;
+                case 'EXP': details = formSubmission.hire_smartsheet_expert; break;
+                case 'ADM': details = formSubmission.system_admin_support; break;
+                case 'REP': details = formSubmission.reports_dashboard; break;
+                case 'PRM': details = formSubmission.premium_app_support; break;
+                case 'ONE': details = formSubmission.book_one_on_one; break;
+                case 'PMO': details = formSubmission.pmo_control_center; break;
+                case 'LIR': details = formSubmission.license_request; break;
             }
 
             if (formSubmission.user_id !== (req as any).user.id) {
                 return res.failure('Unauthorized to access this form', {}, 403);
             }
 
-            return res.success('Form retrieved successfully', { ...formSubmission });
+            const {
+                solution_implementation,
+                api_integration,
+                hire_smartsheet_expert,
+                system_admin_support,
+                reports_dashboard,
+                premium_app_support,
+                book_one_on_one,
+                pmo_control_center,
+                license_request,
+                ...base
+            } = formSubmission;
+
+            return res.success("Form details fetched successfully", {
+                ...base,
+                details
+            }, 200);
         } catch (error) {
             console.error('Error fetching form:', error);
             return res.failure('Failed to fetch form', { error: error.message }, 500);
