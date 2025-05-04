@@ -148,6 +148,7 @@ class FormController {
                             data: {
                                 form_submission_id: formSubmission.id,
                                 name: formData.name,
+                                company_name: formData.company_name,
                                 company_email: formData.company_email,
                                 company_address: formData.company_address,
                                 state: formData.state,
