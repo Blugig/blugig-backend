@@ -207,6 +207,10 @@ model PmoControlCenter {
 model LicenseRequest {
     name               String
     company_email      String
+    company_address    String?
+    state              String?
+    country            String?
+    pincode            Int?
     license_type       String
     premium_add_ons    String
     instructions       String

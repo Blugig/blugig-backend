@@ -149,6 +149,10 @@ class FormController {
                                 form_submission_id: formSubmission.id,
                                 name: formData.name,
                                 company_email: formData.company_email,
+                                company_address: formData.company_address,
+                                state: formData.state,
+                                country: formData.country,
+                                pin_code: parseInt(formData.pin_code),
                                 license_type: formData.license_type,
                                 number_of_licenses: formData.number_of_licenses,
                                 premium_add_ons: formData.premium_add_ons,
@@ -213,40 +217,11 @@ class FormController {
                 return res.failure("Form not found", { formId }, 404);
             }
 
-            let details: any;
-            switch (formType) {
-                case 'SOL': details = formSubmission.solution_implementation; break;
-                case 'API': details = formSubmission.api_integration; break;
-                case 'EXP': details = formSubmission.hire_smartsheet_expert; break;
-                case 'ADM': details = formSubmission.system_admin_support; break;
-                case 'REP': details = formSubmission.reports_dashboard; break;
-                case 'PRM': details = formSubmission.premium_app_support; break;
-                case 'ONE': details = formSubmission.book_one_on_one; break;
-                case 'PMO': details = formSubmission.pmo_control_center; break;
-                case 'LIR': details = formSubmission.license_request; break;
-            }
-
             if (formSubmission.user_id !== (req as any).user.id) {
                 return res.failure('Unauthorized to access this form', {}, 403);
             }
 
-            const {
-                solution_implementation,
-                api_integration,
-                hire_smartsheet_expert,
-                system_admin_support,
-                reports_dashboard,
-                premium_app_support,
-                book_one_on_one,
-                pmo_control_center,
-                license_request,
-                ...base
-            } = formSubmission;
-
-            return res.success("Form details fetched successfully", {
-                ...base,
-                details
-            }, 200);
+            return res.success("Form details fetched successfully", { ...formSubmission }, 200);
         } catch (error) {
             console.error('Error fetching form:', error);
             return res.failure('Failed to fetch form', { error: error.message }, 500);
