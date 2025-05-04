@@ -152,7 +152,7 @@ class FormController {
                                 company_address: formData.company_address,
                                 state: formData.state,
                                 country: formData.country,
-                                pin_code: parseInt(formData.pin_code),
+                                pincode: parseInt(formData.pincode),
                                 license_type: formData.license_type,
                                 number_of_licenses: formData.number_of_licenses,
                                 premium_add_ons: formData.premium_add_ons,
