@@ -6,7 +6,7 @@ import CustomResponse from '../utils/customResponse';
 import sendVerificationEmail, { generateAccessToken } from '../utils/sendMail';
 import { basicUserFields } from '../lib/serializers/user';
 import { generateFileUrl } from '../lib/fileUpload';
-import { getFormDescriptionKey, getFormName } from '../utils/misc';
+import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
 
 export const register = async (req: Request, res: CustomResponse) => {
     try {
@@ -329,7 +329,7 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
                 form_id: submission.id,
                 form_type: submission.form_type,
                 form_name: getFormName(submission.form_type),
-                form_title: "KYA DU ISME BRIJESH BHAIIIIIII",
+                form_title: details[getFormTitleKey(submission.form_type)] || null,
                 form_description: details[getFormDescriptionKey(submission.form_type)] || null,
                 conversation_uuid: submission.conversation?.id || null
             };
