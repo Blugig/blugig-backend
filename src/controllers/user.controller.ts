@@ -398,3 +398,43 @@ export const deleteUser = async (req: Request, res: CustomResponse) => {
         res.failure("Failed to delete user", error, 500);
     }
 };
+
+
+export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
+    try {
+        const { id } = (req as any).user;
+        const { offer_id, status } = req.body;
+
+        if (status !== 'accepted' && status !== 'rejected') {
+            return res.failure("Invalid status", null, 400);
+        }
+
+        const offer = await prisma.offer.findUnique({
+            where: { id: offer_id },
+            include: {
+                user: true
+            }
+        });
+
+        if (!offer) {
+            return res.failure("Offer not found", null, 404);
+        }
+
+        if (offer.user_id !== id) {
+            return res.failure("You are not authorized to accept or reject this offer", null, 403);
+        }
+
+        if (offer.status !== 'pending') {
+            return res.failure("Offer has already been accepted or rejected", null, 400);
+        }
+
+        await prisma.offer.update({
+            where: { id: offer_id },
+            data: { status }
+        });
+
+        res.success("Offer accepted/rejected successfully", null, 200);
+    } catch (error) {
+        res.failure("Failed to accept/reject offer", error, 500);
+    }
+}

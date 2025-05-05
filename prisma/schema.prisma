@@ -59,6 +59,31 @@ model User {
     conversations Conversation[]
     submissions   FormSubmission[]
     Message       Message[]
+    Offer         Offer[]
+}
+
+// ---- Offer Model ----
+enum OfferStatus {
+    pending
+    accepted
+    rejected
+    revoked
+}
+
+model Offer {
+    id          Int         @id @default(autoincrement())
+    name        String
+    description String
+    timeline    String
+    budget      Int
+    status      OfferStatus
+
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
+
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    Message    Message[]
 }
 
 // ---- FORMS MODELS ----
@@ -239,7 +264,7 @@ model Conversation {
 enum MessageType {
     TEXT
     MEDIA
-    PROMPT
+    OFFER
 }
 
 model Message {
@@ -249,6 +274,10 @@ model Message {
     media_url    String?
     media_type   String? // e.g., image, video, audio, etc.
     message_type MessageType
+
+    // if message is of type offer then offer_id will be non-nullable
+    offer_id Int?
+    offer    Offer? @relation(fields: [offer_id], references: [id])
 
     conversation_id String
     conversation    Conversation @relation(fields: [conversation_id], references: [id])

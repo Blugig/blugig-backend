@@ -30,6 +30,8 @@ adminRouter.post('/update-admin', authenticate, adminCRUDController.updateAdmin)
 
 adminRouter.get('/get-all-forms/:formType', authenticate, adminFormController.getAllFormsOfType);
 adminRouter.post('/get-form-details', authenticate, adminFormController.getFormDetails);
+adminRouter.post('/create-offer', authenticate, adminFormController.createOffer);
+adminRouter.post('/update-offer', authenticate, adminFormController.updateOffer);
 
 adminRouter.post('/conversations/create', authenticate, adminController.createConverstaion);
 adminRouter.get('/conversations', authenticate, adminController.getAllConversations);

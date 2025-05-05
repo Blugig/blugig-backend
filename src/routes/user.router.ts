@@ -11,7 +11,8 @@ import {
     getUserProfile,
     updateUser,
     deleteUser,
-    getHistory
+    getHistory,
+    acceptRejectOffer
 } from '../controllers/user.controller';
 import { authenticate } from '../middleware/authenticate';
 import upload from '../lib/fileUpload';
@@ -33,5 +34,7 @@ userRouter.get('/get-profile', authenticate, getUserProfile);
 userRouter.get('/history', authenticate, getHistory);
 userRouter.post('/update-profile', authenticate, updateUser);
 userRouter.post('/delete-user', authenticate, deleteUser);
+
+userRouter.post('/accept-reject-offer', authenticate, acceptRejectOffer);
 
 export default userRouter;

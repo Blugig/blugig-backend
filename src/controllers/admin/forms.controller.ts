@@ -3,6 +3,7 @@ import { Request } from 'express';
 import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import { createPaginatedResponse, getPagination } from '../../utils/queryHelpers';
+import { stat } from 'fs';
 
 export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
     try {
@@ -71,7 +72,6 @@ export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
     }
 };
 
-
 export const getFormDetails = async (req: Request, res: CustomResponse) => {
     try {
         const { formId, formType } = req.body;
@@ -109,7 +109,23 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
                     select: {
                         id: true,
                         user_id: true,
-                        messages: true
+                        messages: {
+                            select: {
+                                id: true,
+                                body: true,
+                                time: true,
+                                media_url: true,
+                                media_type: true,
+                                message_type: true,
+                                offer: true,
+                                conversation_id: true,
+                                sender_admin_id: true, // Changed from null to true
+                                sender_user_id: true, // Changed from null to true
+                            },
+                            orderBy: {
+                                time: 'asc'
+                            }
+                        }
                     }
                 }
             }
@@ -153,3 +169,39 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
         res.failure("Failed to fetch form details", { error: error.message }, 500);
     }
 };
+
+export const createOffer = async (req: Request, res: CustomResponse) => {
+    try {
+        const { name, description, timeline, budget, user_id } = req.body;
+
+        const offer = await prisma.offer.create({
+            data: {
+                name,
+                description,
+                timeline,
+                budget,
+                user_id: parseInt(user_id) as number,
+                status: 'pending'
+            }
+        });
+
+        res.success("Offer created successfully", offer, 201);
+    } catch (error) {
+        res.failure("Failed to create offer", { error: error.message }, 500);
+    }
+};
+
+export const updateOffer = async (req: Request, res: CustomResponse) => {
+    try {
+        const { offerId, name, description, timeline, budget, status } = req.body;
+
+        const offer = await prisma.offer.update({
+            where: { id: offerId },
+            data: { name, description, timeline, budget, status }
+        });
+
+        res.success("Offer updated successfully", offer, 200);
+    } catch (error) {
+        res.failure("Failed to update offer", { error: error.message }, 500);
+    }
+}

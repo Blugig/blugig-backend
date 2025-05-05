@@ -14,13 +14,13 @@ export const socketHandler = (io: Server) => {
         // Handle sending a message
         socket.on('send_message', async (data) => {
             try {
-                console.log(data);
                 const messageData: any = {
                     body: data?.body,
                     message_type: data.message_type,
                     media_url: data?.media_url,
                     media_type: data?.media_type,
                     conversation_id: data.conversation_id,
+                    offer_id: data?.offer_id,
                     time: new Date(),
                 };
 
@@ -37,8 +37,6 @@ export const socketHandler = (io: Server) => {
                 const new_message = await prisma.message.create({
                     data: messageData,
                 });
-
-                console.log(new_message);
 
                 // Emit the message to others in the room
                 socket.to(data.conversation_id).emit('new_message', new_message);
