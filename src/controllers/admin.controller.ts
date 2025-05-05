@@ -6,6 +6,7 @@ import CustomResponse from '../utils/customResponse';
 import sendVerificationEmail, { generateAccessToken } from '../utils/sendMail';
 import { createPaginatedResponse, getPagination } from '../utils/queryHelpers';
 import { basicUserFields } from '../lib/serializers/user';
+import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
 
 export const login = async (req: Request, res: CustomResponse) => {
     try {
@@ -158,18 +159,7 @@ export const getAllUsers = async (req: Request, res: CustomResponse) => {
         const [users, totalCount] = await Promise.all([
             prisma.user.findMany({
                 where,
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    phone: true,
-                    user_type: true,
-                    domain_expertise: true,
-                    certificate_link: true,
-                    is_active: true,
-                    last_login: true,
-                    created_at: true,
-                },
+                select: basicUserFields,
                 skip,
                 take,
                 orderBy: { created_at: "desc" },
@@ -189,8 +179,6 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = req.params;
 
-        console.log(id);
-
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
             select: {
@@ -203,7 +191,71 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
             return res.failure("User not found", null, 404);
         }
 
-        res.success("User details fetched successfully", user, 200);
+        const formSubmissions = await prisma.formSubmission.findMany({
+            where: { user_id: parseInt(id) },
+            orderBy: { created_at: 'desc' },
+            include: {
+                solution_implementation: true,
+                api_integration: true,
+                hire_smartsheet_expert: true,
+                system_admin_support: true,
+                reports_dashboard: true,
+                premium_app_support: true,
+                book_one_on_one: true,
+                pmo_control_center: true,
+                license_request: true,
+                conversation: true
+            }
+        });
+
+        const history = formSubmissions.map(submission => {
+            let details: any;
+            switch (submission.form_type) {
+                case 'SOL':
+                    details = submission.solution_implementation;
+                    break;
+                case 'API':
+                    details = submission.api_integration;
+                    break;
+                case 'EXP':
+                    details = submission.hire_smartsheet_expert;
+                    break;
+                case 'ADM':
+                    details = submission.system_admin_support;
+                    break;
+                case 'REP':
+                    details = submission.reports_dashboard;
+                    break;
+                case 'PRM':
+                    details = submission.premium_app_support;
+                    break;
+                case 'ONE':
+                    details = submission.book_one_on_one;
+                    break;
+                case 'PMO':
+                    details = submission.pmo_control_center;
+                    break;
+                case 'LIR':
+                    details = submission.license_request;
+                    break;
+            }
+
+            return {
+                created_at: submission.created_at,
+                form_id: submission.id,
+                form_type: submission.form_type,
+                form_name: getFormName(submission.form_type),
+                form_title: details[getFormTitleKey(submission.form_type)] || null,
+                form_description: details[getFormDescriptionKey(submission.form_type)] || null,
+                conversation_uuid: submission.conversation?.id || null
+            };
+        });
+
+        res.success("User details fetched successfully", {
+            user,
+            submissions: history,
+        }, 200);
+
     } catch (error) {
         res.failure("Failed to fetch user details", error, 500);
     }

@@ -19,7 +19,7 @@ export function getFormDescriptionKey(formType: string): string {
         case 'API': return 'instructions';
         case 'EXP': return 'requirements';
         case 'ADM': return 'support_needs';
-        case 'REP': return 'requirements';
+        case 'REP': return 'requiremelnts';
         case 'PRM': return 'objective';
         case 'ONE': return 'agenda';
         case 'PMO': return 'project_details';

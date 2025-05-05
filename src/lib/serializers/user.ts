@@ -6,6 +6,7 @@ export const basicUserFields: Prisma.UserSelect = {
     email: true,
     phone: true,
     user_type: true,
+    is_active: true,
     
     company_name: true,
 

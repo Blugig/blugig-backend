@@ -1,8 +1,10 @@
 import { Request } from 'express';
+import bcrypt from 'bcrypt';
 
 import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
-import { createPaginatedResponse, getPagination } from '../../utils/queryHelpers';
+import { sendCredentialEmail } from '../../utils/sendMail';
+// import { createPaginatedResponse, getPagination } from '../../utils/queryHelpers';
 
 export const getProfile = async (req: Request, res: CustomResponse) => {
     try {
@@ -70,9 +72,19 @@ export const getAdminDetails = async (req: Request, res: CustomResponse) => {
 
 export const addAdmin = async (req: Request, res: CustomResponse) => {
     try {
-        const { name, email, password, permissions, is_super_admin } = req.body;
+        const { name, email, permissions, is_super_admin } = req.body;
 
-        const perms = permissions.split(',');
+        const perms = permissions.join(',');
+        const plainPassword = Math.random().toString(36).slice(-8);
+        const password = await bcrypt.hash(plainPassword, 14);
+
+        const existingAdmin = await prisma.admin.findUnique({
+            where: { email }
+        });
+
+        if (existingAdmin) {
+            return res.failure("Admin with this email already exists", null, 400);
+        }
 
         const admin = await prisma.admin.create({
             data: {
@@ -81,11 +93,15 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
                 password,
                 permissions: perms,
                 is_super_admin: is_super_admin ? true : false,
+                is_active: true,
             },
         });
 
-        res.success("Admin added successfully", admin, 200);
+        sendCredentialEmail(email, name, plainPassword);
+
+        return res.success("Admin added successfully", admin, 200);
     } catch (error) {
+        console.log(error);
         res.failure("Failed to add admin", error, 500);
     }
 }
