@@ -136,10 +136,46 @@ export const getDashboardData = async (req: Request, res: CustomResponse) => {
         const forms = await prisma.formSubmission.count();
         const conversations = await prisma.conversation.count();
 
+        const [acceptedOffers, totalBudget] = await Promise.all([
+            prisma.offer.count({
+                where: { status: 'accepted' }
+            }),
+            prisma.offer.aggregate({
+                where: { status: 'accepted' },
+                _sum: {
+                    budget: true
+                }
+            })
+        ]);
+
+        const offers: any = await prisma.$queryRaw`
+            SELECT 
+                strftime('%Y-%m', "createdAt") AS month,
+                status,
+                COUNT(*) as count
+            FROM "Offer"
+            GROUP BY month, status
+            ORDER BY month ASC;
+        `;
+
+        // Format result into { [month]: { accepted: x, rejected: y, pending: z } }
+        const acceptedRejectOffersData = {};
+
+        offers.forEach(({ month, status, count }) => {
+            const label = new Date(month).toLocaleString('default', { month: 'short' });
+            if (!acceptedRejectOffersData[label]) {
+                acceptedRejectOffersData[label] = { accepted: 0, rejected: 0, pending: 0 };
+            }
+            acceptedRejectOffersData[label][status] = Number(count);
+        });
+
         res.success("Dashboard data fetched successfully", {
             users,
             forms,
-            conversations
+            conversations,
+            acceptedOffers,
+            totalBudget: totalBudget._sum.budget || 0,
+            acceptedRejectOffersData
         }, 200);
 
     } catch (error) {
