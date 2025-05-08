@@ -12,7 +12,8 @@ import {
     updateUser,
     deleteUser,
     getHistory,
-    acceptRejectOffer
+    acceptRejectOffer,
+    makePayment
 } from '../controllers/user.controller';
 import { authenticate } from '../middleware/authenticate';
 import upload from '../lib/fileUpload';
@@ -36,5 +37,6 @@ userRouter.post('/update-profile', authenticate, updateUser);
 userRouter.post('/delete-user', authenticate, deleteUser);
 
 userRouter.post('/accept-reject-offer', authenticate, acceptRejectOffer);
+userRouter.get('/payment', makePayment);
 
 export default userRouter;

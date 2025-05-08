@@ -70,6 +70,11 @@ enum OfferStatus {
     revoked
 }
 
+enum OfferType {
+    general
+    meeting
+}
+
 model Offer {
     id          Int         @id @default(autoincrement())
     name        String
@@ -77,6 +82,7 @@ model Offer {
     timeline    String
     budget      Int
     status      OfferStatus
+    type        OfferType   @default(general)
 
     user_id Int
     user    User @relation(fields: [user_id], references: [id])
@@ -121,6 +127,8 @@ model SolutionImplementation {
     requirements       String?
     budget             String
     contact_preference String
+    attachment         String?
+    attachmentType     String?
 
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
@@ -134,6 +142,8 @@ model ApiIntegration {
     timeline              String
     budget                String?
     instructions          String?
+    attachment            String?
+    attachmentType        String?
 
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
@@ -149,6 +159,8 @@ model HireSmartsheetExpert {
     start_date         DateTime
     additional_notes   String?
     contact_preference String
+    attachment         String?
+    attachmentType     String?
 
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
@@ -163,16 +175,21 @@ model SystemAdminSupport {
     budget             String?
     support_needs      String
     contact_preference String
+    attachment         String?
+    attachmentType     String?
 
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
 }
 
 model ReportsDashboard {
-    id                 Int     @id @default(autoincrement())
-    request_type       String
-    requirements       String
-    attachment         String?
+    id           Int    @id @default(autoincrement())
+    request_type String
+    requirements String
+
+    attachment     String?
+    attachmentType String?
+
     timeline           String
     instructions       String?
     contact_preference String
@@ -191,17 +208,21 @@ model PremiumAppSupport {
     start_date           DateTime
     instruction          String
     contact_preference   String
+    attachment           String?
+    attachmentType       String?
 
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
 }
 
 model BookOneOnOne {
-    id                         Int    @id @default(autoincrement())
+    id                         Int     @id @default(autoincrement())
     consultation_focus         String
     time_slot                  String
     time_zone                  String
     preferred_meeting_platform String
+    attachment                 String?
+    attachmentType             String?
 
     full_name      String
     company_name   String
@@ -224,6 +245,8 @@ model PmoControlCenter {
     timeline                String
     additional_notes        String?
     contact_preference      String
+    attachment              String?
+    attachmentType          String?
 
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
@@ -241,6 +264,8 @@ model LicenseRequest {
     premium_add_ons    String
     instructions       String
     number_of_licenses String
+    attachment         String?
+    attachmentType     String?
 
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)

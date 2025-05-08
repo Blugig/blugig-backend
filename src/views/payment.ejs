@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blugig Payment</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+
+<body>
+    <script type="text/javascript">
+        function onPaymentSuccess(paymentData) {
+            if (window.Android && typeof window.Android.onPaymentSuccess === 'function') {
+                window.Android.onPaymentSuccess(paymentData);
+            }
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iOSHandler) {
+                window.webkit.messageHandlers.iOSHandler.postMessage({
+                    action: "onPaymentSuccess",
+                    txnId: paymentData,
+                });
+            }
+        }
+
+        function onPaymentFailure(errorMessage) {
+            if (window.Android && typeof window.Android.onPaymentFailure === 'function') {
+                window.Android.onPaymentFailure(errorMessage);
+            }
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iOSHandler) {
+                window.webkit.messageHandlers.iOSHandler.postMessage({
+                    action: "onPaymentFailure",
+                    errorMessage: errorMessage,
+                });
+            }
+        }
+
+        async function payWithStripe() {
+            const stripe = Stripe('pk_test_51RMPhd4GX8vSpGTOwNT7HGWTJLNoQ5R505BCpLZGco90G3DCPAY6GV80sUIEiqBblywrguPN4ZVF83VYUSjBSN7s00ITRKuz8K'); // Replace with your public key
+
+            try {
+                const response = await fetch('/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: "<%= amount %>",
+                        currency: 'usd',
+                        offerId: "<%= id %>",
+                    }),
+                });
+
+                const session = await response.json();
+                if (!session || !session.id) {
+                    onPaymentFailure('Failed to create payment session');
+                    return;
+                }
+
+                const result = await stripe.redirectToCheckout({ sessionId: session.id });
+                if (result.error) {
+                    onPaymentFailure(result.error.message);
+                }
+
+            } catch (error) {
+                onPaymentFailure(error.message);
+            }
+        }
+
+        payWithStripe();
+    </script>
+</body>
+
+</html>

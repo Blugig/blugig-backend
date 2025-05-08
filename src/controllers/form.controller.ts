@@ -37,7 +37,9 @@ class FormController {
                                 timeline: formData.timeline,
                                 requirements: formData.requirements,
                                 budget: formData.budget,
-                                contact_preference: formData.contact_preference
+                                contact_preference: formData.contact_preference,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;
@@ -50,7 +52,9 @@ class FormController {
                                 integration_objective: formData.integration_objective,
                                 timeline: formData.timeline,
                                 budget: formData.budget,
-                                instructions: formData.instructions
+                                instructions: formData.instructions,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;
@@ -65,7 +69,9 @@ class FormController {
                                 domain_focus: formData.domain_focus,
                                 start_date: new Date(formData.start_date),
                                 additional_notes: formData.additional_notes,
-                                contact_preference: formData.contact_preference
+                                contact_preference: formData.contact_preference,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;
@@ -79,7 +85,9 @@ class FormController {
                                 start_date: new Date(formData.start_date),
                                 budget: formData.budget,
                                 support_needs: formData.support_needs,
-                                contact_preference: formData.contact_preference
+                                contact_preference: formData.contact_preference,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;
@@ -90,9 +98,10 @@ class FormController {
                                 request_type: formData.request_type,
                                 requirements: formData.requirements,
                                 attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                                 timeline: formData.timeline,
                                 instructions: formData.instructions,
-                                contact_preference: formData.contact_preference
+                                contact_preference: formData.contact_preference,
                             }
                         });
                         break;
@@ -107,7 +116,9 @@ class FormController {
                                 smartsheet_plan: formData.smartsheet_plan,
                                 start_date: new Date(formData.start_date),
                                 instruction: formData.instruction,
-                                contact_preference: formData.contact_preference
+                                contact_preference: formData.contact_preference,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;
@@ -123,7 +134,9 @@ class FormController {
                                 company_name: formData.company_name,
                                 business_email: formData.business_email,
                                 phone_number: formData.phone_number,
-                                agenda: formData.agenda
+                                agenda: formData.agenda,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;
@@ -134,12 +147,14 @@ class FormController {
                                 service_type: formData.service_type,
                                 industry: formData.industry,
                                 project_details: formData.project_details,
-                                expected_projects: formData.expected_projects,
+                                expected_projects: parseInt(formData.expected_projects),
                                 smartsheet_admin_access: formData.smartsheet_admin_access,
                                 current_setup: formData.current_setup,
                                 timeline: formData.timeline,
                                 additional_notes: formData.additional_notes,
-                                contact_preference: formData.contact_preference
+                                contact_preference: formData.contact_preference,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;
@@ -158,6 +173,8 @@ class FormController {
                                 number_of_licenses: formData.number_of_licenses,
                                 premium_add_ons: formData.premium_add_ons,
                                 instructions: formData.instructions,
+                                attachment: generatedAttachmentUrl,
+                                attachmentType: req.file?.mimetype,
                             }
                         });
                         break;

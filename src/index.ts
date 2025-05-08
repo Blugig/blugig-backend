@@ -32,6 +32,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(responseEnhancer);
 
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 const uploadsDir = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadsDir));
 

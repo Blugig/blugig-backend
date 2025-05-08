@@ -172,12 +172,13 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
 
 export const createOffer = async (req: Request, res: CustomResponse) => {
     try {
-        const { name, description, timeline, budget, user_id } = req.body;
+        const { name, description, timeline, budget, type, user_id } = req.body;
 
         const offer = await prisma.offer.create({
             data: {
                 name,
                 description,
+                type,
                 timeline,
                 budget,
                 user_id: parseInt(user_id) as number,
@@ -193,11 +194,11 @@ export const createOffer = async (req: Request, res: CustomResponse) => {
 
 export const updateOffer = async (req: Request, res: CustomResponse) => {
     try {
-        const { offerId, name, description, timeline, budget, status } = req.body;
+        const { offerId, name, description, timeline, budget, status, type } = req.body;
 
         const offer = await prisma.offer.update({
             where: { id: offerId },
-            data: { name, description, timeline, budget, status }
+            data: { name, description, timeline, budget, status, type }
         });
 
         res.success("Offer updated successfully", offer, 200);

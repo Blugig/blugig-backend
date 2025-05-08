@@ -438,3 +438,31 @@ export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
         res.failure("Failed to accept/reject offer", error, 500);
     }
 }
+
+export const makePayment = async (req: Request, res: CustomResponse) => {
+    try {
+        const authHeader = req.headers['Authorization'];
+        const offer_id = 4; // req.headers['X-Offer-Id'];
+
+        const offer = await prisma.offer.findUnique({
+            where: { id: parseInt(offer_id as any) },
+            include: {
+                user: true
+            }
+        });
+
+        if (!offer) {
+            return res.failure("Offer not found", null, 404);
+        }
+
+        return res.render('payment', {
+            id: offer.id,
+            amount: offer.budget,
+            currency: 'USD',
+            username: offer.user.name,
+            user_id: offer.user_id,
+        });
+    } catch (error) {
+        res.failure("Failed to make payment", 500);
+    }
+}
