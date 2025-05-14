@@ -186,6 +186,7 @@ model ReportsDashboard {
     id           Int    @id @default(autoincrement())
     request_type String
     requirements String
+    budget       Int?
 
     attachment     String?
     attachmentType String?
@@ -204,7 +205,6 @@ model PremiumAppSupport {
     objective            String
     current_setup_status String
     integration_needs    String
-    smartsheet_plan      String
     start_date           DateTime
     instruction          String
     contact_preference   String
@@ -221,6 +221,7 @@ model BookOneOnOne {
     time_slot                  String
     time_zone                  String
     preferred_meeting_platform String
+    preferred_date             DateTime?
     attachment                 String?
     attachmentType             String?
 
@@ -264,6 +265,8 @@ model LicenseRequest {
     premium_add_ons    String
     instructions       String
     number_of_licenses String
+    selected_plan      String?
+    plan_duration      String?
     attachment         String?
     attachmentType     String?
 
