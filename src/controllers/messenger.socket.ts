@@ -38,8 +38,23 @@ export const socketHandler = (io: Server) => {
                     data: messageData,
                 });
 
+                var msg_to_send: any;
+
+                if (messageData.message_type === 'OFFER' && messageData.offer_id) {
+                    const offer = await prisma.offer.findUnique({
+                        where: { id: messageData.offer_id },
+                    });
+
+                    msg_to_send = {
+                        ...new_message,
+                        offer: offer,
+                    };
+                } else {
+                    msg_to_send = new_message
+                }
+
                 // Emit the message to others in the room
-                socket.to(data.conversation_id).emit('new_message', new_message);
+                socket.to(data.conversation_id).emit('new_message', msg_to_send);
 
             } catch (error) {
                 console.error('Error saving message:', error);

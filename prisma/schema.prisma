@@ -83,6 +83,7 @@ model Offer {
     budget      Int
     status      OfferStatus
     type        OfferType   @default(general)
+    txn_id      String?
 
     user_id Int
     user    User @relation(fields: [user_id], references: [id])

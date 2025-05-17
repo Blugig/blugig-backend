@@ -403,7 +403,7 @@ export const deleteUser = async (req: Request, res: CustomResponse) => {
 export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = (req as any).user;
-        const { offer_id, status } = req.body;
+        const { offer_id, status, txn_id } = req.body;
 
         if (status !== 'accepted' && status !== 'rejected') {
             return res.failure("Invalid status", null, 400);
@@ -430,7 +430,7 @@ export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
 
         await prisma.offer.update({
             where: { id: offer_id },
-            data: { status }
+            data: { status, txn_id }
         });
 
         res.success("Offer accepted/rejected successfully", null, 200);
