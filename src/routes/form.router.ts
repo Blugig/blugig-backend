@@ -19,6 +19,13 @@ formRouter.post(
     FormController.getFormDetails
 );
 
+// Get Form Conversation
+formRouter.post(
+    '/get-form-messages',
+    authenticate,
+    FormController.getFormMessages
+)
+
 // Create a new form
 formRouter.post(
     '/',

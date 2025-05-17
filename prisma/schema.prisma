@@ -125,7 +125,7 @@ model SolutionImplementation {
     project_goals      String
     timeline           String
     requirements       String?
-    budget             String
+    budget             Int
     contact_preference String
     attachment         String?
     attachmentType     String?
@@ -140,7 +140,7 @@ model ApiIntegration {
     target_application    String
     integration_objective String
     timeline              String
-    budget                String?
+    budget                Int?
     instructions          String?
     attachment            String?
     attachmentType        String?
@@ -172,7 +172,7 @@ model SystemAdminSupport {
     number_of_users    Int
     type_of_support    String
     start_date         DateTime
-    budget             String?
+    budget             Int?
     support_needs      String
     contact_preference String
     attachment         String?

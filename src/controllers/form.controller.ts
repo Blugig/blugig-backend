@@ -36,7 +36,7 @@ class FormController {
                                 project_goals: formData.project_goals,
                                 timeline: formData.timeline,
                                 requirements: formData.requirements,
-                                budget: formData.budget,
+                                budget: parseInt(formData.budget) || null,
                                 contact_preference: formData.contact_preference,
                                 attachment: generatedAttachmentUrl,
                                 attachmentType: req.file?.mimetype,
@@ -51,7 +51,7 @@ class FormController {
                                 target_application: formData.target_application,
                                 integration_objective: formData.integration_objective,
                                 timeline: formData.timeline,
-                                budget: formData.budget,
+                                budget: parseInt(formData.budget) || null,
                                 instructions: formData.instructions,
                                 attachment: generatedAttachmentUrl,
                                 attachmentType: req.file?.mimetype,
@@ -63,7 +63,7 @@ class FormController {
                             data: {
                                 form_submission_id: formSubmission.id,
                                 requirements: formData.requirements,
-                                is_full_time: formData.is_full_time,
+                                is_full_time: Boolean(formData.is_full_time),
                                 project_scope: formData.project_scope,
                                 expected_duration: formData.expected_duration,
                                 domain_focus: formData.domain_focus,
@@ -83,7 +83,7 @@ class FormController {
                                 number_of_users: formData.number_of_users,
                                 type_of_support: formData.type_of_support,
                                 start_date: new Date(formData.start_date),
-                                budget: formData.budget,
+                                budget: parseInt(formData.budget) || null,
                                 support_needs: formData.support_needs,
                                 contact_preference: formData.contact_preference,
                                 attachment: generatedAttachmentUrl,
@@ -228,7 +228,6 @@ class FormController {
                         select: {
                             id: true,
                             user_id: true,
-                            messages: true
                         }
                     }
                 }
@@ -246,6 +245,62 @@ class FormController {
         } catch (error) {
             console.error('Error fetching form:', error);
             return res.failure('Failed to fetch form', { error: error.message }, 500);
+        }
+    }
+
+    async getFormMessages(req: Request, res: CustomResponse) {
+        try {
+            const { formId, formType } = req.body;
+
+            if (isNaN(formId)) {
+                return res.failure('Invalid form ID', { id: formId }, 400);
+            }
+
+            const formSubmission = await prisma.formSubmission.findUnique({
+                where: { id: +formId },
+                include: {
+                    solution_implementation: false,
+                    api_integration: false,
+                    hire_smartsheet_expert: false,
+                    system_admin_support: false,
+                    reports_dashboard: false,
+                    premium_app_support: false,
+                    book_one_on_one: false,
+                    pmo_control_center: false,
+                    license_request: false,
+                    conversation: {
+                        select: {
+                            id: true,
+                            user_id: true,
+                            messages: {
+                                include: {
+                                    offer: {
+                                        select: {
+                                            id: true,
+                                            status: true,
+                                            type: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (!formSubmission) {
+                return res.failure("Form not found", { formId }, 404);
+            }
+
+            if (formSubmission.user_id !== (req as any).user.id) {
+                return res.failure('Unauthorized to access this form', {}, 403);
+            }
+
+            return res.success("Form messages fetched successfully", formSubmission.conversation); 
+
+        } catch (error) {
+            console.error('Error fetching form messages:', error);
+            return res.failure('Failed to fetch form messages', { error: error.message }, 500);
         }
     }
 
