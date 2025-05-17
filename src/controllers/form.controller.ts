@@ -278,7 +278,11 @@ class FormController {
                                         select: {
                                             id: true,
                                             status: true,
-                                            type: true
+                                            type: true,
+                                            budget: true,
+                                            description: true,
+                                            timeline: true,
+                                            name: true,
                                         }
                                     }
                                 }
