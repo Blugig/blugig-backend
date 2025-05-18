@@ -237,14 +237,16 @@ export const getAllUsers = async (req: Request, res: CustomResponse) => {
 
 export const uploadFile = async (req: Request, res: CustomResponse) => {
     try {
-        const file = req.file;
+        if (!req.file) {
+            return res.failure("No file uploaded", null, 400);
+        }
 
-        const url = generateFileUrl(file!.filename);
+        const url = generateFileUrl(req.file?.filename);
 
         return res.success("File uploaded successfully", {
             url,
-            filename: file!.filename,
-            media_type: file!.mimetype,
+            filename: req.file?.filename,
+            media_type: req.file?.mimetype,
         });
     } catch (error) {
         console.log(error);
@@ -439,13 +441,14 @@ export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
     }
 }
 
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 export const makePayment = async (req: Request, res: CustomResponse) => {
     try {
-        const authHeader = req.headers['Authorization'];
-        const offer_id = 4; // req.headers['X-Offer-Id'];
+        const { offerId } = req.body;
 
         const offer = await prisma.offer.findUnique({
-            where: { id: parseInt(offer_id as any) },
+            where: { id: parseInt(offerId as any) },
             include: {
                 user: true
             }
@@ -455,14 +458,39 @@ export const makePayment = async (req: Request, res: CustomResponse) => {
             return res.failure("Offer not found", null, 404);
         }
 
-        return res.render('payment', {
-            id: offer.id,
-            amount: offer.budget,
-            currency: 'USD',
-            username: offer.user.name,
-            user_id: offer.user_id,
+        if (offer.user_id !== (req as any).user.id) {
+            return res.failure("You are not authorized to make this payment", null, 403);
+        }
+
+        const customer = await stripe.customers.create();
+        const ephemeralKey = await stripe.ephemeralKeys.create(
+            { customer: customer.id },
+            { apiVersion: '2025-04-30.basil' }
+        );
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: offer.budget * 100,
+            currency: 'usd',
+            customer: customer.id,
+            // In the latest version of the API, specifying the `automatic_payment_methods` parameter
+            // is optional because Stripe enables its functionality by default.
+            automatic_payment_methods: {
+                enabled: true,
+            },
+            metadata: {
+                offer_id: offer.id,
+                user_id: offer.user_id
+            }
         });
+
+        return res.success("Created Payment Intent", {
+            paymentIntent: paymentIntent.client_secret,
+            ephemeralKey: ephemeralKey.secret,
+            customer: customer.id,
+            publishableKey: process.env.STRIPE_PUBLIC_KEY
+        });
+
     } catch (error) {
+        console.log(error);
         res.failure("Failed to make payment", 500);
     }
 }

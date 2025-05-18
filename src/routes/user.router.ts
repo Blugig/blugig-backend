@@ -30,13 +30,13 @@ userRouter.post('/forgot-password', authenticate, forgotPassword);
 // User management routes
 userRouter.get('/', getAllUsers);
 
-userRouter.post('/file-upload', authenticate, upload.single('file'), uploadFile);
+userRouter.post('/file-upload', authenticate, upload.single('attachment'), uploadFile);
 userRouter.get('/get-profile', authenticate, getUserProfile);
 userRouter.get('/history', authenticate, getHistory);
 userRouter.post('/update-profile', authenticate, updateUser);
 userRouter.post('/delete-user', authenticate, deleteUser);
 
 userRouter.post('/accept-reject-offer', authenticate, acceptRejectOffer);
-userRouter.get('/payment', makePayment);
+userRouter.post('/payment', authenticate, makePayment);
 
 export default userRouter;
