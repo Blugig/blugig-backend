@@ -300,12 +300,14 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
 
 export const createConverstaion = async (req: Request, res: CustomResponse) => {
     try {
+        const id = (req as any).user.id;
         const { userId, formId } = req.body;
 
         const conversation = await prisma.conversation.create({
             data: {
                 user_id: userId,
                 form_id: formId,
+                admin_id: id,
             }
         });
 

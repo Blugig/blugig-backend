@@ -26,7 +26,7 @@ adminRouter.get('/get-admins', authenticate, adminCRUDController.getAllAdmins);
 adminRouter.get('/get-admin-details/:email', authenticate, adminCRUDController.getAdminDetails);
 adminRouter.post('/create-admin', authenticate, adminCRUDController.addAdmin);
 adminRouter.post('/delete-admin', authenticate, adminCRUDController.deleteAdmin);
-adminRouter.post('/update-admin', authenticate, adminCRUDController.updateAdmin);
+adminRouter.post('/update-admin', authenticate, upload.single('profile_photo'), adminCRUDController.updateAdmin);
 
 adminRouter.get('/get-all-forms/:formType', authenticate, adminFormController.getAllFormsOfType);
 adminRouter.post('/get-form-details', authenticate, adminFormController.getFormDetails);

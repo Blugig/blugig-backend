@@ -308,6 +308,43 @@ class FormController {
         }
     }
 
+    async getChatList(req: Request, res: CustomResponse) {
+        try {
+            const userId = (req as any).user.id;
+
+            const conversations = await prisma.conversation.findMany({
+                where: { user_id: userId },
+                orderBy: {
+                    updated_at: 'desc'
+                },
+                include: {
+                    admin: {
+                        select: {
+                            id: true,
+                            name: true,
+                            profile_photo: true,
+                        }
+                    },
+                    latest_message: {
+                        select: {
+                            body: true,
+                            time: true,
+                            message_type: true,
+                            is_read: true,
+                        }
+                    },
+                }
+            });
+
+
+            return res.success('Chat list fetched successfully', conversations);
+
+        } catch (error) {
+            console.error('Error fetching chat list:', error);
+            return res.failure('Failed to fetch chat list', { error: error.message }, 500);
+        }
+    }
+
     async getUserForms(req: Request, res: CustomResponse) {
         try {
             const userId = (req as any).user.id;

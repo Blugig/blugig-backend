@@ -20,25 +20,28 @@ enum FormPermissions {
 }
 
 model Admin {
-    id               String    @id @default(cuid())
+    id               String         @id @default(cuid())
+    profile_photo    String?
     name             String
-    email            String    @unique
+    email            String         @unique
     password         String
-    is_active        Boolean   @default(false)
-    is_super_admin   Boolean   @default(false)
+    is_active        Boolean        @default(false)
+    is_super_admin   Boolean        @default(false)
     access_token     String?
     last_login       DateTime?
     generated_otp    Int?
     otp_generated_at DateTime?
-    created_at       DateTime  @default(now())
-    updated_at       DateTime  @updatedAt
+    created_at       DateTime       @default(now())
+    updated_at       DateTime       @updatedAt
     permissions      String
     Message          Message[]
+    Conversation     Conversation[]
 }
 
 // ---- unique check on email if its active or else not needed ----
 model User {
     id               Int       @id @default(autoincrement())
+    profile_photo    String?
     name             String
     email            String
     is_active        Boolean   @default(false)
@@ -217,7 +220,7 @@ model PremiumAppSupport {
 }
 
 model BookOneOnOne {
-    id                         Int     @id @default(autoincrement())
+    id                         Int       @id @default(autoincrement())
     consultation_focus         String
     time_slot                  String
     time_zone                  String
@@ -281,13 +284,22 @@ model Conversation {
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 
-    user_id Int
-    user    User @relation(fields: [user_id], references: [id])
+    user_id  Int
+    user     User    @relation(fields: [user_id], references: [id])
+    admin_id String?
+    admin    Admin?  @relation(fields: [admin_id], references: [id])
 
     form_id Int            @unique
     form    FormSubmission @relation(fields: [form_id], references: [id], onDelete: Cascade)
 
     messages Message[] // One-to-many relationship
+
+    latest_message_id Int?     @unique
+    latest_message    Message? @relation("LatestMessage", fields: [latest_message_id], references: [id])
+    unread_count      Int?     @default(0)
+
+    // Compound unique constraint
+    @@unique([user_id, admin_id, form_id])
 }
 
 enum MessageType {
@@ -303,6 +315,7 @@ model Message {
     media_url    String?
     media_type   String? // e.g., image, video, audio, etc.
     message_type MessageType
+    is_read      Boolean     @default(false)
 
     // if message is of type offer then offer_id will be non-nullable
     offer_id Int?
@@ -316,4 +329,6 @@ model Message {
 
     sender_admin_id String?
     sender_admin    Admin?  @relation(fields: [sender_admin_id], references: [id])
+
+    Conversation_latest_message Conversation? @relation("LatestMessage")
 }

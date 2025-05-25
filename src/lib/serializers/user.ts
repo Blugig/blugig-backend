@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client'
 
 export const basicUserFields: Prisma.UserSelect = {
     id: true,
+    
+    profile_photo: true,
     name: true,
     email: true,
     phone: true,

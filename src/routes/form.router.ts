@@ -12,6 +12,12 @@ formRouter.get(
     FormController.getUserForms
 );
 
+formRouter.get(
+    '/chat-list',
+    authenticate,
+    FormController.getChatList
+)
+
 // Get form by ID
 formRouter.post(
     '/get-form-details',

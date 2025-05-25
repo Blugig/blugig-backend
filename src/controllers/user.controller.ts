@@ -349,7 +349,7 @@ export const updateUser = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = (req as any).user;
 
-        const ALLOWED_FIELDS = ['name', 'email', 'phone', 'company_name', 'certificate_link', 'domain_expertise'];
+        const ALLOWED_FIELDS = ['name', 'profile_photo', 'email', 'phone', 'company_name', 'certificate_link', 'domain_expertise'];
 
         // Check if any field other than allowed fields is being updated
         const invalidFields = Object.keys(req.body).filter(field => !ALLOWED_FIELDS.includes(field));
@@ -357,9 +357,18 @@ export const updateUser = async (req: Request, res: CustomResponse) => {
             return res.failure(`Invalid fields: ${invalidFields.join(', ')}`, null, 400);
         }
 
+        const updatedData: any = {
+            ...req.body,
+        };
+
+        if (req.file?.filename) {
+            const photo = generateFileUrl(req.file.filename);
+            updatedData.profile_photo = photo;
+        }
+
         const user = await prisma.user.update({
             where: { id: id },
-            data: req.body,
+            data: updatedData,
             select: basicUserFields
         });
 

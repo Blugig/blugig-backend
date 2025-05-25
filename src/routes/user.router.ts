@@ -33,7 +33,7 @@ userRouter.get('/', getAllUsers);
 userRouter.post('/file-upload', authenticate, upload.single('attachment'), uploadFile);
 userRouter.get('/get-profile', authenticate, getUserProfile);
 userRouter.get('/history', authenticate, getHistory);
-userRouter.post('/update-profile', authenticate, updateUser);
+userRouter.post('/update-profile', authenticate, upload.single('profile_photo'), updateUser);
 userRouter.post('/delete-user', authenticate, deleteUser);
 
 userRouter.post('/accept-reject-offer', authenticate, acceptRejectOffer);
