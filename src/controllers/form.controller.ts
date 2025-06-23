@@ -9,12 +9,10 @@ class FormController {
             const { formType, ...formData } = req.body;
             const userId = (req as any).user.id;
 
-            const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'REP', 'PRM', 'ONE', 'PMO', 'LIR'];
+            const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'PRM', 'ONE', 'PMO', 'LIR', 'ADH'];
             if (!validFormTypes.includes(formType)) {
                 return res.failure('Invalid form type', { formType }, 400);
             }
-
-            const generatedAttachmentUrl = generateFileUrl(req.file?.filename);
 
             const result = await prisma.$transaction(async (tx) => {
                 const formSubmission = await tx.formSubmission.create({
@@ -30,16 +28,16 @@ class FormController {
                         detailsData = await tx.solutionImplementation.create({
                             data: {
                                 form_submission_id: formSubmission.id,
-                                project_name: formData.project_name,
-                                project_type: formData.project_type,
-                                industry: formData.industry,
-                                project_goals: formData.project_goals,
+                                project_title: formData.project_title,
+                                implementation_type: formData.implementation_type,
+                                description: formData.description,
+                                team_size: formData.team_size,
+                                departments_involved: formData.departments_involved,
+                                current_tools: formData.current_tools,
+                                implementation_features: formData.implementation_features,
                                 timeline: formData.timeline,
-                                requirements: formData.requirements,
-                                budget: parseInt(formData.budget) || null,
-                                contact_preference: formData.contact_preference,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
+                                budget: formData.budget,
+                                requirements: formData.requirements
                             }
                         });
                         break;
@@ -48,13 +46,17 @@ class FormController {
                             data: {
                                 form_submission_id: formSubmission.id,
                                 integration_type: formData.integration_type,
-                                target_application: formData.target_application,
-                                integration_objective: formData.integration_objective,
+                                source_system: formData.source_system,
+                                data_to_sync: formData.data_to_sync,
+                                sync_direction: formData.sync_direction,
+                                sync_frequency: formData.sync_frequency,
+                                api_access_available: formData.api_access_available,
+                                data_volumne: formData.data_volumne,
+                                technical_requirements: formData.technical_requirements,
+                                integration_features: formData.integration_features,
                                 timeline: formData.timeline,
-                                budget: parseInt(formData.budget) || null,
-                                instructions: formData.instructions,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
+                                budget: formData.budget,
+                                description: formData.description
                             }
                         });
                         break;
@@ -62,16 +64,16 @@ class FormController {
                         detailsData = await tx.hireSmartsheetExpert.create({
                             data: {
                                 form_submission_id: formSubmission.id,
-                                requirements: formData.requirements,
-                                is_full_time: Boolean(formData.is_full_time),
-                                project_scope: formData.project_scope,
-                                expected_duration: formData.expected_duration,
-                                domain_focus: formData.domain_focus,
-                                start_date: new Date(formData.start_date),
-                                additional_notes: formData.additional_notes,
-                                contact_preference: formData.contact_preference,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
+                                position_type: formData.position_type,
+                                job_title: formData.job_title,
+                                company_name: formData.company_name,
+                                location: formData.location,
+                                required_skills: formData.required_skills,
+                                experience_level: formData.experience_level,
+                                budget: formData.budget,
+                                start_date: formData.start_date,
+                                contract_duration: formData.contract_duration,
+                                job_description: formData.job_description
                             }
                         });
                         break;
@@ -79,30 +81,17 @@ class FormController {
                         detailsData = await tx.systemAdminSupport.create({
                             data: {
                                 form_submission_id: formSubmission.id,
-                                company_name: formData.company_name,
+                                support_needed: formData.support_needed,
+                                smartsheet_plan: formData.smartsheet_plan,
                                 number_of_users: formData.number_of_users,
-                                type_of_support: formData.type_of_support,
-                                start_date: new Date(formData.start_date),
-                                budget: parseInt(formData.budget) || null,
-                                support_needs: formData.support_needs,
-                                contact_preference: formData.contact_preference,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
-                            }
-                        });
-                        break;
-                    case 'REP':
-                        detailsData = await tx.reportsDashboard.create({
-                            data: {
-                                form_submission_id: formSubmission.id,
-                                request_type: formData.request_type,
-                                requirements: formData.requirements,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
-                                budget: parseInt(formData.budget) || null,
-                                timeline: formData.timeline,
-                                instructions: formData.instructions,
-                                contact_preference: formData.contact_preference,
+                                current_admin_experience: formData.current_admin_experience,
+                                current_challenges: formData.current_challenges,
+                                admin_task_needed: formData.admin_task_needed,
+                                support_frequency: formData.support_frequency,
+                                timezone: formData.timezone,
+                                urgency_level: formData.urgency_level,
+                                budget: formData.budget,
+                                requirements: formData.requirements
                             }
                         });
                         break;
@@ -110,15 +99,16 @@ class FormController {
                         detailsData = await tx.premiumAppSupport.create({
                             data: {
                                 form_submission_id: formSubmission.id,
-                                add_on_to_configure: formData.add_on_to_configure,
-                                objective: formData.objective,
-                                current_setup_status: formData.current_setup_status,
-                                integration_needs: formData.integration_needs,
-                                start_date: new Date(formData.start_date),
-                                instruction: formData.instruction,
-                                contact_preference: formData.contact_preference,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
+                                organization_name: formData.organization_name,
+                                premium_addons: formData.premium_addons,
+                                primary_use_case: formData.primary_use_case,
+                                current_smartsheet_plan: formData.current_smartsheet_plan,
+                                team_size: formData.team_size,
+                                implementation_scope: formData.implementation_scope,
+                                requirements: formData.requirements,
+                                timeline: formData.timeline,
+                                budget: formData.budget,
+                                primary_contact_email: formData.primary_contact_email
                             }
                         });
                         break;
@@ -126,18 +116,11 @@ class FormController {
                         detailsData = await tx.bookOneOnOne.create({
                             data: {
                                 form_submission_id: formSubmission.id,
+                                preferred_date: formData.preferred_date,
+                                preferred_time: formData.preferred_time,
                                 consultation_focus: formData.consultation_focus,
-                                time_slot: formData.time_slot,
-                                time_zone: formData.time_zone,
-                                preferred_date: new Date(formData.preferred_date),
-                                preferred_meeting_platform: formData.preferred_meeting_platform,
-                                full_name: formData.full_name,
-                                company_name: formData.company_name,
-                                business_email: formData.business_email,
-                                phone_number: formData.phone_number,
-                                agenda: formData.agenda,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
+                                smartsheet_experience: formData.smartsheet_experience,
+                                team_size: formData.team_size
                             }
                         });
                         break;
@@ -145,17 +128,15 @@ class FormController {
                         detailsData = await tx.pmoControlCenter.create({
                             data: {
                                 form_submission_id: formSubmission.id,
-                                service_type: formData.service_type,
-                                industry: formData.industry,
-                                project_details: formData.project_details,
-                                expected_projects: parseInt(formData.expected_projects),
-                                smartsheet_admin_access: formData.smartsheet_admin_access,
-                                current_setup: formData.current_setup,
+                                organization_name: formData.organization_name,
+                                control_centre_type: formData.control_centre_type,
+                                required_features: formData.required_features,
+                                expected_project_scale: formData.expected_project_scale,
+                                team_size: formData.team_size,
+                                current_smartsheet_experience: formData.current_smartsheet_experience,
+                                budget: formData.budget,
                                 timeline: formData.timeline,
-                                additional_notes: formData.additional_notes,
-                                contact_preference: formData.contact_preference,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
+                                primary_contact_email: formData.primary_contact_email
                             }
                         });
                         break;
@@ -163,21 +144,28 @@ class FormController {
                         detailsData = await tx.licenseRequest.create({
                             data: {
                                 form_submission_id: formSubmission.id,
-                                name: formData.name,
-                                company_name: formData.company_name,
-                                company_email: formData.company_email,
-                                company_address: formData.company_address,
-                                state: formData.state,
-                                country: formData.country,
-                                pincode: parseInt(formData.pincode),
                                 license_type: formData.license_type,
-                                number_of_licenses: formData.number_of_licenses,
-                                premium_add_ons: formData.premium_add_ons,
-                                instructions: formData.instructions,
-                                selected_plan: formData.selected_plan,
-                                plan_duration: formData.plan_duration,
-                                attachment: generatedAttachmentUrl,
-                                attachmentType: req.file?.mimetype,
+                                company_name: formData.company_name,
+                                industry: formData.industry,
+                                team_size: formData.team_size,
+                                full_name: formData.full_name,
+                                email: formData.email,
+                                phone: formData.phone,
+                                job_title: formData.job_title,
+                                timeline: formData.timeline,
+                                project_needs: formData.project_needs
+                            }
+                        });
+                        break;
+                    case 'ADH':
+                        detailsData = await tx.adhocRequest.create({
+                            data: {
+                                form_submission_id: formSubmission.id,
+                                need_help_with: formData.need_help_with,
+                                description: formData.description,
+                                urgency_level: formData.urgency_level,
+                                budget: formData.budget,
+                                expected_timeline: formData.expected_timeline
                             }
                         });
                         break;
@@ -211,7 +199,7 @@ class FormController {
                     api_integration: formType === 'API',
                     hire_smartsheet_expert: formType === 'EXP',
                     system_admin_support: formType === 'ADM',
-                    reports_dashboard: formType === 'REP',
+                    adhoc_request: formType === 'ADH',
                     premium_app_support: formType === 'PRM',
                     book_one_on_one: formType === 'ONE',
                     pmo_control_center: formType === 'PMO',
@@ -263,7 +251,7 @@ class FormController {
                     api_integration: false,
                     hire_smartsheet_expert: false,
                     system_admin_support: false,
-                    reports_dashboard: false,
+                    adhoc_request: false,
                     premium_app_support: false,
                     book_one_on_one: false,
                     pmo_control_center: false,
@@ -300,7 +288,7 @@ class FormController {
                 return res.failure('Unauthorized to access this form', {}, 403);
             }
 
-            return res.success("Form messages fetched successfully", formSubmission.conversation); 
+            return res.success("Form messages fetched successfully", formSubmission.conversation);
 
         } catch (error) {
             console.error('Error fetching form messages:', error);
@@ -365,7 +353,7 @@ class FormController {
                     api_integration: true,
                     hire_smartsheet_expert: true,
                     system_admin_support: true,
-                    reports_dashboard: true,
+                    adhoc_request: true,
                     premium_app_support: true,
                     book_one_on_one: true,
                     pmo_control_center: true,
@@ -388,8 +376,8 @@ class FormController {
                     case 'ADM':
                         details = submission.system_admin_support;
                         break;
-                    case 'REP':
-                        details = submission.reports_dashboard;
+                    case 'ADH':
+                        details = submission.adhoc_request;
                         break;
                     case 'PRM':
                         details = submission.premium_app_support;
@@ -410,7 +398,7 @@ class FormController {
                     api_integration,
                     hire_smartsheet_expert,
                     system_admin_support,
-                    reports_dashboard,
+                    adhoc_request,
                     premium_app_support,
                     book_one_on_one,
                     pmo_control_center,

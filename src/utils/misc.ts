@@ -4,7 +4,7 @@ export function getFormName(formType: string): string {
         case 'API': return 'API Integration';
         case 'EXP': return 'Hire Smartsheet Expert';
         case 'ADM': return 'System Admin Support';
-        case 'REP': return 'Reports and Dashboards';
+        case 'ADH': return 'Adhoc Request';
         case 'PRM': return 'Premium App Support';
         case 'ONE': return 'One-on-One Consultation';
         case 'PMO': return 'PMO Control Center';
@@ -16,28 +16,28 @@ export function getFormName(formType: string): string {
 export function getFormDescriptionKey(formType: string): string {
     switch (formType) {
         case 'SOL': return 'requirements';
-        case 'API': return 'instructions';
-        case 'EXP': return 'requirements';
-        case 'ADM': return 'support_needs';
-        case 'REP': return 'requiremelnts';
-        case 'PRM': return 'objective';
-        case 'ONE': return 'agenda';
-        case 'PMO': return 'project_details';
-        case 'LIR': return 'instructions';
+        case 'API': return 'description';
+        case 'EXP': return 'job_description';
+        case 'ADM': return 'requirements';
+        case 'ADH': return 'description';
+        case 'PRM': return 'requirements';
+        case 'ONE': return 'consultation_focus';
+        case 'PMO': return 'required_features';
+        case 'LIR': return 'project_needs';
         default: return 'null';
     }
 }
 
 export function getFormTitleKey(formType: string): string {
     switch (formType) {
-        case 'SOL': return 'project_name';
+        case 'SOL': return 'project_title';
         case 'API': return 'integration_type';
-        case 'EXP': return 'domain_focus';
-        case 'ADM': return 'type_of_support';
-        case 'REP': return 'request_type';
-        case 'PRM': return 'add_on_to_configure';
+        case 'EXP': return 'job_title';
+        case 'ADM': return 'support_needed';
+        case 'ADH': return 'need_help_with';
+        case 'PRM': return 'organization_name';
         case 'ONE': return 'consultation_focus';
-        case 'PMO': return 'service_type';
+        case 'PMO': return 'organization_name';
         case 'LIR': return 'company_name';
         default: return 'null';
     }

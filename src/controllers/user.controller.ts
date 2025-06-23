@@ -285,7 +285,7 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
                 api_integration: true,
                 hire_smartsheet_expert: true,
                 system_admin_support: true,
-                reports_dashboard: true,
+                adhoc_request: true,
                 premium_app_support: true,
                 book_one_on_one: true,
                 pmo_control_center: true,
@@ -309,8 +309,8 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
                 case 'ADM':
                     details = submission.system_admin_support;
                     break;
-                case 'REP':
-                    details = submission.reports_dashboard;
+                case 'ADH':
+                    details = submission.adhoc_request;
                     break;
                 case 'PRM':
                     details = submission.premium_app_support;
@@ -410,6 +410,48 @@ export const deleteUser = async (req: Request, res: CustomResponse) => {
     }
 };
 
+// Leave a review
+export const createReview = async (req: Request, res: CustomResponse) => {
+    try {
+
+        const { id } = (req as any).user;
+        const {
+            formId,
+            review,
+            communication,
+            quality_of_work,
+            timeliness,
+            value_for_money
+        } = req.body;
+
+        const existingReview = await prisma.review.findFirst({
+            where: {
+                form_submission_id: +formId,
+                user_id: +id,
+            }
+        });
+
+        if (existingReview) {
+            return res.failure('You have already reviewed this submission.', null, 400);
+        }
+
+        const newReview = await prisma.review.create({
+            data: {
+                form_submission_id: +formId,
+                user_id: +id,
+                review,
+                communication,
+                quality_of_work,
+                timeliness,
+                value_for_money
+            }
+        });
+
+        res.success("Review created successfully", newReview, 200);
+    } catch (error) {
+        res.failure("Failed to create review", error, 500);
+    }
+}
 
 export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
     try {

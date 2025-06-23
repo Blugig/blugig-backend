@@ -36,7 +36,6 @@ formRouter.post(
 formRouter.post(
     '/',
     authenticate,
-    upload.single('attachment'),
     FormController.createForm
 );
 

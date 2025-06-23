@@ -235,7 +235,7 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                 api_integration: true,
                 hire_smartsheet_expert: true,
                 system_admin_support: true,
-                reports_dashboard: true,
+                adhoc_request: true,
                 premium_app_support: true,
                 book_one_on_one: true,
                 pmo_control_center: true,
@@ -259,8 +259,8 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                 case 'ADM':
                     details = submission.system_admin_support;
                     break;
-                case 'REP':
-                    details = submission.reports_dashboard;
+                case 'ADH':
+                    details = submission.adhoc_request;
                     break;
                 case 'PRM':
                     details = submission.premium_app_support;
@@ -296,7 +296,6 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
         res.failure("Failed to fetch user details", error, 500);
     }
 }
-
 
 export const createConverstaion = async (req: Request, res: CustomResponse) => {
     try {

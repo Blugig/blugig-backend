@@ -10,7 +10,7 @@ export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
         const { formType } = req.params;
         const { page, take, skip } = getPagination(req);
 
-        const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'REP', 'PRM', 'ONE', 'PMO', 'LIR'];
+        const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'ADH', 'PRM', 'ONE', 'PMO', 'LIR'];
         if (!validFormTypes.includes(formType)) {
             return res.failure('Invalid form type', { formType }, 400);
         }
@@ -20,7 +20,7 @@ export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
             API: { api_integration: true },
             EXP: { hire_smartsheet_expert: true },
             ADM: { system_admin_support: true },
-            REP: { reports_dashboard: true },
+            ADH: { adhoc_request: true },
             PRM: { premium_app_support: true },
             ONE: { book_one_on_one: true },
             PMO: { pmo_control_center: true },
@@ -51,7 +51,7 @@ export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
                 case 'API': details = sub.api_integration; break;
                 case 'EXP': details = sub.hire_smartsheet_expert; break;
                 case 'ADM': details = sub.system_admin_support; break;
-                case 'REP': details = sub.reports_dashboard; break;
+                case 'ADH': details = sub.adhoc_request; break;
                 case 'PRM': details = sub.premium_app_support; break;
                 case 'ONE': details = sub.book_one_on_one; break;
                 case 'PMO': details = sub.pmo_control_center; break;
@@ -76,7 +76,7 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
     try {
         const { formId, formType } = req.body;
 
-        const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'REP', 'PRM', 'ONE', 'PMO', 'LIR'];
+        const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'ADH', 'PRM', 'ONE', 'PMO', 'LIR'];
         if (!validFormTypes.includes(formType)) {
             return res.failure('Invalid form type', { formType }, 400);
         }
@@ -92,7 +92,7 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
                 api_integration: formType === 'API',
                 hire_smartsheet_expert: formType === 'EXP',
                 system_admin_support: formType === 'ADM',
-                reports_dashboard: formType === 'REP',
+                adhoc_request: formType === 'ADH',
                 premium_app_support: formType === 'PRM',
                 book_one_on_one: formType === 'ONE',
                 pmo_control_center: formType === 'PMO',
@@ -141,7 +141,7 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
             case 'API': details = formSubmission.api_integration; break;
             case 'EXP': details = formSubmission.hire_smartsheet_expert; break;
             case 'ADM': details = formSubmission.system_admin_support; break;
-            case 'REP': details = formSubmission.reports_dashboard; break;
+            case 'ADH': details = formSubmission.adhoc_request; break;
             case 'PRM': details = formSubmission.premium_app_support; break;
             case 'ONE': details = formSubmission.book_one_on_one; break;
             case 'PMO': details = formSubmission.pmo_control_center; break;
@@ -153,7 +153,7 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
             api_integration,
             hire_smartsheet_expert,
             system_admin_support,
-            reports_dashboard,
+            adhoc_request,
             premium_app_support,
             book_one_on_one,
             pmo_control_center,
