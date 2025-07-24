@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import { createPaginatedResponse, getPagination } from '../../utils/queryHelpers';
-import { stat } from 'fs';
+import { generateAccessToken } from '../../utils/sendMail';
 
 export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
     try {
@@ -161,8 +161,12 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
             ...base
         } = formSubmission;
 
+        const user = (req as any).user;
+        const tempToken = generateAccessToken(user.id, user.userType, "3h");
+
         return res.success("Form details fetched successfully", {
             ...base,
+            session: tempToken,
             details
         }, 200);
     } catch (error) {
@@ -191,58 +195,3 @@ export const createOffer = async (req: Request, res: CustomResponse) => {
         res.failure("Failed to create offer", { error: error.message }, 500);
     }
 };
-
-export const getAvailableSlots = async (req: Request, res: CustomResponse) => {
-    try {
-
-        const { date } = req.body;
-
-        // Fetch all time slots
-        const timeSlots = await prisma.timeSlot.findMany({
-            where: { is_active: true },
-            include: {
-                bookings: {
-                    where: {
-                        date: new Date(date),
-                    },
-                    select: { id: true },
-                },
-            },
-        });
-
-        // Filter slots where bookings.length < capacity
-        const availableSlots = timeSlots.filter(slot => slot.bookings.length < slot.capacity);
-
-        res.success("Fetched available slots successfully", { availableSlots }, 200);
-    } catch (error) {
-        res.failure("Failed to fetch available slots", error, 500);
-    }
-}
-
-export const createTimeSlots = async (req: Request, res: CustomResponse) => {
-    try {
-        const { slots } = req.body;
-
-        // slots: [{ start_time: "9:00 AM", capacity: 2 }, ...]
-        if (!Array.isArray(slots) || slots.length === 0) {
-            return res.failure("Slots array is required", {}, 400);
-        }
-
-        const created = await prisma.timeSlot.createMany({
-            data: slots.map((slot: any) => ({
-                start_time: slot.start_time,
-                capacity: slot.capacity ?? 1,
-                is_active: slot.is_active ?? true,
-            }))
-        });
-
-        const createdSlots = await prisma.timeSlot.findMany({
-            orderBy: { id: 'desc' },
-            take: slots.length,
-        });
-
-        res.success("Time slots created successfully", createdSlots, 201);
-    } catch (error) {
-        res.failure("Failed to create time slots", { error: error.message }, 500);
-    }
-}

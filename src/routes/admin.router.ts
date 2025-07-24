@@ -33,10 +33,6 @@ adminRouter.get('/get-all-forms/:formType', authenticate, adminFormController.ge
 adminRouter.post('/get-form-details', authenticate, adminFormController.getFormDetails);
 adminRouter.post('/create-offer', authenticate, adminFormController.createOffer);
 
-
-adminRouter.post('/get-time-slots', authenticate, adminFormController.getAvailableSlots);
-adminRouter.post('/create-time-slots', authenticate, adminFormController.createTimeSlots);
-
 // Time slot management routes
 adminRouter.use('/time-slots', timeSlotRouter);
 

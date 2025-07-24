@@ -1,11 +1,11 @@
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 
-export const generateAccessToken = (uid: number | string, userType?: string) => {
+export const generateAccessToken = (uid: number | string, userType?: string, expiresIn?: string) => {
     return jwt.sign(
         { userId: uid, userType: userType || "" },
         process.env.JWT_SECRET as string,
-        { expiresIn: process.env.JWT_EXPIRES_IN as any || '1h' }
+        { expiresIn: expiresIn || process.env.JWT_EXPIRES_IN as any || '1h' }
     );
 }
 
