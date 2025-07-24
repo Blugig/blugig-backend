@@ -3,6 +3,7 @@ import express from "express";
 import * as adminController from "../controllers/admin.controller";
 import * as adminFormController from "../controllers/admin/forms.controller";
 import * as adminCRUDController from "../controllers/admin/index.controller";
+import timeSlotRouter from "./timeSlot.router";
 
 import { uploadFile } from "../controllers/user.controller"
 import upload from '../lib/fileUpload';
@@ -31,7 +32,13 @@ adminRouter.post('/update-admin', authenticate, upload.single('profile_photo'), 
 adminRouter.get('/get-all-forms/:formType', authenticate, adminFormController.getAllFormsOfType);
 adminRouter.post('/get-form-details', authenticate, adminFormController.getFormDetails);
 adminRouter.post('/create-offer', authenticate, adminFormController.createOffer);
-adminRouter.post('/update-offer', authenticate, adminFormController.updateOffer);
+
+
+adminRouter.post('/get-time-slots', authenticate, adminFormController.getAvailableSlots);
+adminRouter.post('/create-time-slots', authenticate, adminFormController.createTimeSlots);
+
+// Time slot management routes
+adminRouter.use('/time-slots', timeSlotRouter);
 
 adminRouter.post('/conversations/create', authenticate, adminController.createConverstaion);
 adminRouter.get('/conversations', authenticate, adminController.getAllConversations);

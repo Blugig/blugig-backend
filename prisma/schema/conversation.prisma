@@ -1,0 +1,52 @@
+model Conversation {
+    id         String   @id @default(uuid())
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    user_id  Int
+    user     User    @relation(fields: [user_id], references: [id])
+    admin_id String?
+    admin    Admin?  @relation(fields: [admin_id], references: [id])
+
+    form_id Int            @unique
+    form    FormSubmission @relation(fields: [form_id], references: [id], onDelete: Cascade)
+
+    messages Message[]
+
+    last_seen_message_id Int?
+    latest_message_id    Int?     @unique
+    latest_message       Message? @relation("LatestMessage", fields: [latest_message_id], references: [id])
+    unread_count         Int?     @default(0)
+
+    @@unique([user_id, admin_id, form_id])
+}
+
+enum MessageType {
+    TEXT
+    MEDIA
+    OFFER
+}
+
+model Message {
+    id           Int         @id @default(autoincrement())
+    body         String?
+    time         DateTime    @default(now())
+    media_url    String?
+    media_type   String?
+    message_type MessageType @default(TEXT)
+    is_read      Boolean     @default(false)
+
+    offer_id Int?
+    offer    Offer? @relation(fields: [offer_id], references: [id])
+
+    conversation_id String
+    conversation    Conversation @relation(fields: [conversation_id], references: [id])
+
+    sender_user_id Int?
+    sender_user    User? @relation(fields: [sender_user_id], references: [id])
+
+    sender_admin_id String?
+    sender_admin    Admin?  @relation(fields: [sender_admin_id], references: [id])
+
+    Conversation_latest_message Conversation? @relation("LatestMessage")
+}

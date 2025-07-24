@@ -7,6 +7,14 @@ import sendVerificationEmail, { generateAccessToken } from '../utils/sendMail';
 import { basicUserFields } from '../lib/serializers/user';
 import { generateFileUrl } from '../lib/fileUpload';
 import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
+import { formSelectFields } from '../lib/serializers/form';
+
+interface AuthenticatedRequest extends Request {
+    user?: {
+        id: number;
+        user_type: string;
+    };
+}
 
 export const register = async (req: Request, res: CustomResponse) => {
     try {
@@ -281,16 +289,20 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
             where: { user_id: parseInt(id) },
             orderBy: { created_at: 'desc' },
             include: {
-                solution_implementation: true,
-                api_integration: true,
-                hire_smartsheet_expert: true,
-                system_admin_support: true,
-                adhoc_request: true,
-                premium_app_support: true,
-                book_one_on_one: true,
-                pmo_control_center: true,
-                license_request: true,
-                conversation: true
+                ...formSelectFields,
+                conversation: true,
+                review: true,
+                reports: true,
+                payment: {
+                    select: {
+                        id: true,
+                        base_amount: true,
+                        platform_fee_amount: true,
+                        tax_amount: true,
+                        total_amount: true,
+                        created_at: true
+                    }
+                }
             }
         });
 
@@ -327,13 +339,19 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
             }
 
             return {
-                created_at: submission.created_at,
                 form_id: submission.id,
                 form_type: submission.form_type,
+                status: submission.status,
                 form_name: getFormName(submission.form_type),
                 form_title: details[getFormTitleKey(submission.form_type)] || null,
                 form_description: details[getFormDescriptionKey(submission.form_type)] || null,
-                conversation_uuid: submission.conversation?.id || null
+                created_at: submission.created_at,
+
+                payment: submission.payment,
+                review: submission.review,
+                reports: submission.reports,
+                
+                conversation_uuid: submission.conversation?.id || null,
             };
         });
 
@@ -410,53 +428,10 @@ export const deleteUser = async (req: Request, res: CustomResponse) => {
     }
 };
 
-// Leave a review
-export const createReview = async (req: Request, res: CustomResponse) => {
-    try {
-
-        const { id } = (req as any).user;
-        const {
-            formId,
-            review,
-            communication,
-            quality_of_work,
-            timeliness,
-            value_for_money
-        } = req.body;
-
-        const existingReview = await prisma.review.findFirst({
-            where: {
-                form_submission_id: +formId,
-                user_id: +id,
-            }
-        });
-
-        if (existingReview) {
-            return res.failure('You have already reviewed this submission.', null, 400);
-        }
-
-        const newReview = await prisma.review.create({
-            data: {
-                form_submission_id: +formId,
-                user_id: +id,
-                review,
-                communication,
-                quality_of_work,
-                timeliness,
-                value_for_money
-            }
-        });
-
-        res.success("Review created successfully", newReview, 200);
-    } catch (error) {
-        res.failure("Failed to create review", error, 500);
-    }
-}
-
 export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = (req as any).user;
-        const { offer_id, status, txn_id } = req.body;
+        const { offer_id, status } = req.body;
 
         if (status !== 'accepted' && status !== 'rejected') {
             return res.failure("Invalid status", null, 400);
@@ -483,65 +458,11 @@ export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
 
         await prisma.offer.update({
             where: { id: offer_id },
-            data: { status, txn_id }
+            data: { status }
         });
 
         res.success("Offer accepted/rejected successfully", null, 200);
     } catch (error) {
         res.failure("Failed to accept/reject offer", error, 500);
-    }
-}
-
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-export const makePayment = async (req: Request, res: CustomResponse) => {
-    try {
-        const { offerId } = req.body;
-
-        const offer = await prisma.offer.findUnique({
-            where: { id: parseInt(offerId as any) },
-            include: {
-                user: true
-            }
-        });
-
-        if (!offer) {
-            return res.failure("Offer not found", null, 404);
-        }
-
-        if (offer.user_id !== (req as any).user.id) {
-            return res.failure("You are not authorized to make this payment", null, 403);
-        }
-
-        const customer = await stripe.customers.create();
-        const ephemeralKey = await stripe.ephemeralKeys.create(
-            { customer: customer.id },
-            { apiVersion: '2025-04-30.basil' }
-        );
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: offer.budget * 100,
-            currency: 'usd',
-            customer: customer.id,
-            // In the latest version of the API, specifying the `automatic_payment_methods` parameter
-            // is optional because Stripe enables its functionality by default.
-            automatic_payment_methods: {
-                enabled: true,
-            },
-            metadata: {
-                offer_id: offer.id,
-                user_id: offer.user_id
-            }
-        });
-
-        return res.success("Created Payment Intent", {
-            paymentIntent: paymentIntent.client_secret,
-            ephemeralKey: ephemeralKey.secret,
-            customer: customer.id,
-            publishableKey: process.env.STRIPE_PUBLIC_KEY
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.failure("Failed to make payment", 500);
     }
 }

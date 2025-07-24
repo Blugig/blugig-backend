@@ -2,12 +2,14 @@ import { Request } from 'express';
 import { prisma } from '../lib/prisma';
 import CustomResponse from '../utils/customResponse';
 import { generateFileUrl } from '../lib/fileUpload';
+import { Prisma } from '@prisma/client';
+import { formSelectFields } from '../lib/serializers/form';
 
 class FormController {
     async createForm(req: Request, res: CustomResponse) {
         try {
             const { formType, ...formData } = req.body;
-            const userId = (req as any).user.id;
+            const userId = (req as any).user.id as any;
 
             const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'PRM', 'ONE', 'PMO', 'LIR', 'ADH'];
             if (!validFormTypes.includes(formType)) {
@@ -17,9 +19,9 @@ class FormController {
             const result = await prisma.$transaction(async (tx) => {
                 const formSubmission = await tx.formSubmission.create({
                     data: {
-                        user_id: parseInt(userId),
-                        form_type: formType
-                    }
+                        user_id: parseInt(userId) as number,
+                        form_type: formType,
+                    } as Prisma.FormSubmissionUncheckedCreateInput
                 });
 
                 let detailsData: any;
@@ -113,6 +115,28 @@ class FormController {
                         });
                         break;
                     case 'ONE':
+                        // Check if the slot is available based on capacity
+                        const slotBookings = await tx.timeSlotBooking.count({
+                            where: {
+                                date: new Date(formData.preferred_date),
+                                time_slot_id: formData.time_slot_id
+                            }
+                        });
+
+                        const timeSlot = await tx.timeSlot.findUnique({
+                            where: { id: formData.time_slot_id },
+                            select: { capacity: true }
+                        });
+
+                        if (!timeSlot) {
+                            throw new Error('Selected time slot does not exist.');
+                        }
+
+                        if (slotBookings >= timeSlot.capacity) {
+                            throw new Error('Selected time slot is already fully booked for this date.');
+                        }
+
+                        // Create the BookOneOnOne form
                         detailsData = await tx.bookOneOnOne.create({
                             data: {
                                 form_submission_id: formSubmission.id,
@@ -121,6 +145,15 @@ class FormController {
                                 consultation_focus: formData.consultation_focus,
                                 smartsheet_experience: formData.smartsheet_experience,
                                 team_size: formData.team_size
+                            }
+                        });
+
+                        // Create the TimeSlotBooking
+                        await tx.timeSlotBooking.create({
+                            data: {
+                                date: new Date(formData.preferred_date),
+                                time_slot_id: formData.time_slot_id,
+                                book_one_on_one_id: detailsData.id
                             }
                         });
                         break;
@@ -184,6 +217,204 @@ class FormController {
         }
     }
 
+    async editForm(req: Request, res: CustomResponse) {
+        try {
+            const { formId, formType, ...formData } = req.body;
+            const userId = (req as any).user.id as any;
+
+            if (!formId || isNaN(formId)) {
+                return res.failure('Invalid form ID', { formId }, 400);
+            }
+
+            const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'PRM', 'ONE', 'PMO', 'LIR', 'ADH'];
+            if (!validFormTypes.includes(formType)) {
+                return res.failure('Invalid form type', { formType }, 400);
+            }
+
+            // Check if form exists and belongs to the user
+            const existingForm = await prisma.formSubmission.findFirst({
+                where: {
+                    id: parseInt(formId),
+                    user_id: parseInt(userId),
+                    form_type: formType
+                }
+            });
+
+            if (!existingForm) {
+                return res.failure('Form not found or unauthorized', { formId }, 404);
+            }
+
+            const result = await prisma.$transaction(async (tx) => {
+                // Update the form submission
+                const formSubmission = await tx.formSubmission.update({
+                    where: { id: parseInt(formId) },
+                    data: {
+                        updated_at: new Date()
+                    } as Prisma.FormSubmissionUncheckedUpdateInput
+                });
+
+                let detailsData: any;
+                switch (formType) {
+                    case 'SOL':
+                        detailsData = await tx.solutionImplementation.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                project_title: formData.project_title,
+                                implementation_type: formData.implementation_type,
+                                description: formData.description,
+                                team_size: formData.team_size,
+                                departments_involved: formData.departments_involved,
+                                current_tools: formData.current_tools,
+                                implementation_features: formData.implementation_features,
+                                timeline: formData.timeline,
+                                budget: formData.budget,
+                                requirements: formData.requirements
+                            }
+                        });
+                        break;
+                    case 'API':
+                        detailsData = await tx.apiIntegration.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                integration_type: formData.integration_type,
+                                source_system: formData.source_system,
+                                data_to_sync: formData.data_to_sync,
+                                sync_direction: formData.sync_direction,
+                                sync_frequency: formData.sync_frequency,
+                                api_access_available: formData.api_access_available,
+                                data_volumne: formData.data_volumne,
+                                technical_requirements: formData.technical_requirements,
+                                integration_features: formData.integration_features,
+                                timeline: formData.timeline,
+                                budget: formData.budget,
+                                description: formData.description
+                            }
+                        });
+                        break;
+                    case 'EXP':
+                        detailsData = await tx.hireSmartsheetExpert.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                position_type: formData.position_type,
+                                job_title: formData.job_title,
+                                company_name: formData.company_name,
+                                location: formData.location,
+                                required_skills: formData.required_skills,
+                                experience_level: formData.experience_level,
+                                budget: formData.budget,
+                                start_date: formData.start_date,
+                                contract_duration: formData.contract_duration,
+                                job_description: formData.job_description
+                            }
+                        });
+                        break;
+                    case 'ADM':
+                        detailsData = await tx.systemAdminSupport.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                support_needed: formData.support_needed,
+                                smartsheet_plan: formData.smartsheet_plan,
+                                number_of_users: formData.number_of_users,
+                                current_admin_experience: formData.current_admin_experience,
+                                current_challenges: formData.current_challenges,
+                                admin_task_needed: formData.admin_task_needed,
+                                support_frequency: formData.support_frequency,
+                                timezone: formData.timezone,
+                                urgency_level: formData.urgency_level,
+                                budget: formData.budget,
+                                requirements: formData.requirements
+                            }
+                        });
+                        break;
+                    case 'PRM':
+                        detailsData = await tx.premiumAppSupport.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                organization_name: formData.organization_name,
+                                premium_addons: formData.premium_addons,
+                                primary_use_case: formData.primary_use_case,
+                                current_smartsheet_plan: formData.current_smartsheet_plan,
+                                team_size: formData.team_size,
+                                implementation_scope: formData.implementation_scope,
+                                requirements: formData.requirements,
+                                timeline: formData.timeline,
+                                budget: formData.budget,
+                                primary_contact_email: formData.primary_contact_email
+                            }
+                        });
+                        break;
+                    case 'ONE':
+                        detailsData = await tx.bookOneOnOne.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                preferred_date: formData.preferred_date,
+                                preferred_time: formData.preferred_time,
+                                consultation_focus: formData.consultation_focus,
+                                smartsheet_experience: formData.smartsheet_experience,
+                                team_size: formData.team_size
+                            }
+                        });
+                        break;
+                    case 'PMO':
+                        detailsData = await tx.pmoControlCenter.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                organization_name: formData.organization_name,
+                                control_centre_type: formData.control_centre_type,
+                                required_features: formData.required_features,
+                                expected_project_scale: formData.expected_project_scale,
+                                team_size: formData.team_size,
+                                current_smartsheet_experience: formData.current_smartsheet_experience,
+                                budget: formData.budget,
+                                timeline: formData.timeline,
+                                primary_contact_email: formData.primary_contact_email
+                            }
+                        });
+                        break;
+                    case 'LIR':
+                        detailsData = await tx.licenseRequest.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                license_type: formData.license_type,
+                                company_name: formData.company_name,
+                                industry: formData.industry,
+                                team_size: formData.team_size,
+                                full_name: formData.full_name,
+                                email: formData.email,
+                                phone: formData.phone,
+                                job_title: formData.job_title,
+                                timeline: formData.timeline,
+                                project_needs: formData.project_needs
+                            }
+                        });
+                        break;
+                    case 'ADH':
+                        detailsData = await tx.adhocRequest.update({
+                            where: { form_submission_id: formSubmission.id },
+                            data: {
+                                need_help_with: formData.need_help_with,
+                                description: formData.description,
+                                urgency_level: formData.urgency_level,
+                                budget: formData.budget,
+                                expected_timeline: formData.expected_timeline
+                            }
+                        });
+                        break;
+                }
+
+                return { formSubmission, detailsData };
+            });
+
+            return res.success('Form updated successfully', {
+                formSubmission: result.formSubmission,
+                details: result.detailsData
+            }, 200);
+        } catch (error) {
+            console.error('Error updating form:', error);
+            return res.failure('Failed to update form', { error: error.message }, 500);
+        }
+    }
+
     async getFormDetails(req: Request, res: CustomResponse) {
         try {
             const { formId, formType } = req.body;
@@ -217,6 +448,16 @@ class FormController {
                             id: true,
                             user_id: true,
                         }
+                    },
+                    payment: {
+                        select: {
+                            id: true,
+                            base_amount: true,
+                            platform_fee_amount: true,
+                            tax_amount: true,
+                            total_amount: true,
+                            created_at: true
+                        }
                     }
                 }
             });
@@ -247,15 +488,7 @@ class FormController {
             const formSubmission = await prisma.formSubmission.findUnique({
                 where: { id: +formId },
                 include: {
-                    solution_implementation: false,
-                    api_integration: false,
-                    hire_smartsheet_expert: false,
-                    system_admin_support: false,
-                    adhoc_request: false,
-                    premium_app_support: false,
-                    book_one_on_one: false,
-                    pmo_control_center: false,
-                    license_request: false,
+                    ...formSelectFields,
                     conversation: {
                         select: {
                             id: true,
@@ -348,17 +581,7 @@ class FormController {
                 orderBy: {
                     created_at: 'desc'
                 },
-                include: {
-                    solution_implementation: true,
-                    api_integration: true,
-                    hire_smartsheet_expert: true,
-                    system_admin_support: true,
-                    adhoc_request: true,
-                    premium_app_support: true,
-                    book_one_on_one: true,
-                    pmo_control_center: true,
-                    license_request: true,
-                }
+                include: formSelectFields
             });
 
             const formattedSubmissions = formSubmissions.map(submission => {

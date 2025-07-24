@@ -1,0 +1,127 @@
+model Feedback {
+    id Int @id @default(autoincrement())
+
+    comment    String
+    attachment String?
+
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
+}
+
+model Review {
+    id              Int    @id @default(autoincrement())
+    review          String
+    communication   Int
+    quality_of_work Int
+    timeliness      Int
+    value_for_money Int
+
+    user_id Int  @unique
+    user    User @relation(fields: [user_id], references: [id])
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+
+    created_at DateTime @default(now())
+
+    @@unique([user_id, form_submission_id])
+}
+
+model Cancellation {
+    id                 Int     @id @default(autoincrement())
+    comments           String?
+    reason             String // comma separated
+    is_refund_eligible Boolean @default(false)
+
+    user_id Int  @unique
+    user    User @relation(fields: [user_id], references: [id])
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+
+    created_at DateTime @default(now())
+
+    @@unique([user_id, form_submission_id])
+}
+
+enum RefundStatus {
+    received
+    approved
+    processing
+    bank_processing
+    completed
+    failed
+}
+
+model Refund {
+    id Int @id @default(autoincrement())
+
+    amount Decimal
+    status RefundStatus @default(received)
+
+    user_id Int  @unique
+    user    User @relation(fields: [user_id], references: [id])
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@unique([user_id, form_submission_id])
+}
+
+enum ReportPriority {
+    low
+    medium
+    high
+}
+
+model Report {
+    id          Int            @id @default(autoincrement())
+    issue       String
+    description String
+    priority    ReportPriority
+
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
+
+    form_submission_id Int
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+model Payment {
+    id                   Int     @id @default(autoincrement())
+    client_secret        String
+    customer_id          String
+    ephemeral_key_secret String?
+
+    // Store percentages for audit/transparency
+    tax_rate          Decimal // 0 - 100
+    platform_fee_rate Decimal // 0 - 100
+
+    // Store calculated amounts
+    base_amount         Decimal // Original amount
+    tax_amount          Decimal // Calculated tax
+    platform_fee_amount Decimal // Calculated platform fee
+    discount_amount     Decimal
+    total_amount        Decimal // Final total
+    currency            String
+
+    user_id Int  @unique
+    user    User @relation(fields: [user_id], references: [id])
+
+    offer_id Int   @unique
+    offer    Offer @relation(fields: [offer_id], references: [id])
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@unique([user_id, form_submission_id, offer_id])
+}

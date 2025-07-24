@@ -11,6 +11,8 @@ export const basicUserFields: Prisma.UserSelect = {
     is_active: true,
     
     company_name: true,
+    industry: true,
+    job_title: true,
 
     domain_expertise: true,
     certificate_link: true,

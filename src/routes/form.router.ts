@@ -1,16 +1,9 @@
 import express from 'express';
 import FormController from '../controllers/form.controller';
+import * as serviceViewController from '../controllers/service/view.controller';
 import { authenticate } from '../middleware/authenticate';
-import upload from '../lib/fileUpload';
 
 const formRouter: any = express.Router();
-
-// Get all forms for authenticated user
-formRouter.get(
-    '/get-user-forms',
-    authenticate,
-    FormController.getUserForms
-);
 
 formRouter.get(
     '/chat-list',
@@ -37,6 +30,19 @@ formRouter.post(
     '/',
     authenticate,
     FormController.createForm
+);
+
+// Edit an existing form
+formRouter.post(
+    '/edit',
+    authenticate,
+    FormController.editForm
+);
+
+formRouter.post(
+    '/get-available-slots',
+    authenticate,
+    serviceViewController.getAvailableSlots
 );
 
 export default formRouter;

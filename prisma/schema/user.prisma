@@ -1,0 +1,68 @@
+model User {
+    id            Int     @id @default(autoincrement())
+    // Personal Details
+    profile_photo String?
+    name          String
+    email         String
+    phone         String
+    password      String
+    job_title     String
+    user_type     String  @default("customer")
+
+    // Company Details
+    company_name     String
+    industry         String
+    company_size     String?
+    website          String?
+    certificate_link String?
+    domain_expertise String
+
+    // Preferences (optional)
+    preferred_communication String? // array of string
+    timezone                String?
+
+    // metadata
+    is_active        Boolean   @default(false)
+    access_token     String?
+    last_login       DateTime?
+    generated_otp    Int?
+    otp_generated_at DateTime?
+
+    // time stamps
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    deleted_at DateTime?
+
+    // Relations with other models
+    conversations Conversation[]
+    Message       Message[]
+
+    submissions   FormSubmission[]
+    Offer         Offer[]
+    refunds       Refund[]
+    cancellations Cancellation[]
+    reviews       Review[]
+    reports       Report[]
+    payments      Payment[]
+
+    feedbacks Feedback[]
+}
+
+model Admin {
+    id               String         @id @default(cuid())
+    profile_photo    String?
+    name             String
+    email            String         @unique
+    password         String
+    is_active        Boolean        @default(false)
+    is_super_admin   Boolean        @default(false)
+    access_token     String?
+    last_login       DateTime?
+    generated_otp    Int?
+    otp_generated_at DateTime?
+    created_at       DateTime       @default(now())
+    updated_at       DateTime       @updatedAt
+    permissions      String
+    Message          Message[]
+    Conversation     Conversation[]
+}
