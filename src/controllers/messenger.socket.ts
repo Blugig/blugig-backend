@@ -243,7 +243,7 @@ export const socketHandler = (io: Server) => {
 
             try {
                 // Validate essential message data
-                if (!data.conversation_id || !data.body) {
+                if (!data.conversation_id || (!data.body && data.message_type === 'TEXT')) {
                     console.error('Missing required message data:', data);
                     socket.emit('message_error', { error: 'Missing required message fields' });
                     return;

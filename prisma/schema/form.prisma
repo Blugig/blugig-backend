@@ -11,13 +11,16 @@ enum OfferType {
 }
 
 model Offer {
-    id          Int         @id @default(autoincrement())
-    name        String
-    description String
-    timeline    String
-    budget      Int
-    status      OfferStatus @default(pending)
-    type        OfferType   @default(general)
+    id              Int         @id @default(autoincrement())
+    name            String
+    description     String
+    timeline        String
+    budget          Int
+    estimated_hours String?
+    total_cost      Int?
+    deliverables    String?
+    status          OfferStatus @default(pending)
+    type            OfferType   @default(general)
 
     user_id Int
     user    User @relation(fields: [user_id], references: [id])

@@ -82,6 +82,7 @@ model Report {
     issue       String
     description String
     priority    ReportPriority
+    attachment  String?
 
     user_id Int
     user    User @relation(fields: [user_id], references: [id])

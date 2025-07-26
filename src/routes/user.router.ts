@@ -26,6 +26,7 @@ userRouter.post('/delete-user', authenticate, userController.deleteUser);
 userRouter.post('/create-review', authenticate, serviceController.createReview);
 userRouter.post('/create-report', authenticate, serviceController.createReport);
 userRouter.post('/create-cancellation', authenticate, serviceController.createCancellation);
+userRouter.post('/feedback', authenticate, upload.single('attachment'), serviceController.createFeedback);
 
 userRouter.post('/accept-reject-offer', authenticate, userController.acceptRejectOffer);
 userRouter.post('/payment', authenticate, serviceController.makePayment);

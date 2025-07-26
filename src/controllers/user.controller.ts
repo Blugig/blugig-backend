@@ -104,7 +104,7 @@ export const login = async (req: Request, res: CustomResponse) => {
             name: user.name,
             email: user.email,
             user_type: user.user_type,
-            access_token: user.access_token,
+            access_token: token,
         }, 200);
     } catch (error) {
         res.failure("Failed to login", error, 500);

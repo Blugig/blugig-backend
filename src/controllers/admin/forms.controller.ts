@@ -176,7 +176,13 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
 
 export const createOffer = async (req: Request, res: CustomResponse) => {
     try {
-        const { name, description, timeline, budget, type, user_id } = req.body;
+        const { 
+            name, description, timeline, 
+            budget, type, user_id,
+            estimated_hours, total_cost, deliverables 
+        } = req.body;
+
+        let strDeliverables = deliverables.join(",");
 
         const offer = await prisma.offer.create({
             data: {
@@ -185,6 +191,9 @@ export const createOffer = async (req: Request, res: CustomResponse) => {
                 type,
                 timeline,
                 budget,
+                estimated_hours: estimated_hours,
+                total_cost: total_cost ? parseInt(total_cost) : null,
+                deliverables: strDeliverables,
                 user_id: parseInt(user_id) as number,
                 status: 'pending'
             }

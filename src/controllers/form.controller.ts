@@ -493,6 +493,13 @@ class FormController {
                         select: {
                             id: true,
                             user_id: true,
+                            admin: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    profile_photo: true,
+                                }
+                            },
                             messages: {
                                 include: {
                                     offer: {

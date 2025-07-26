@@ -119,6 +119,12 @@ export const createReport = async (req: AuthenticatedRequest, res: CustomRespons
             return res.failure('Invalid priority value. Must be "low", "medium", or "high".', null, 400);
         }
 
+        const attachmentFile = req.file;
+        let attachmentUrl = null;
+        if (attachmentFile) {
+            attachmentUrl = generateFileUrl(attachmentFile?.filename);
+        }
+
         // Create the new report entry in the database
         const newReport = await prisma.report.create({
             data: {
@@ -127,6 +133,7 @@ export const createReport = async (req: AuthenticatedRequest, res: CustomRespons
                 priority, // Prisma will handle the enum conversion
                 user_id: +userId,
                 form_submission_id: +formId, // Convert to number
+                attachment: attachmentUrl,
             }
         });
 
