@@ -2,8 +2,9 @@
 node_modules/
 
 # Prisma SQLite DB
-prisma/dev.db
-prisma/dev.db-journal
+dev.db
+prisma/schema/dev.db
+*.db
 
 # Env files
 .env
