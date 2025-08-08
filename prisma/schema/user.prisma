@@ -18,7 +18,7 @@ model User {
     domain_expertise String
 
     // Preferences (optional)
-    preferred_communication String? // array of string
+    preferred_communication String[] // array of string
     timezone                String?
 
     // metadata
@@ -46,23 +46,31 @@ model User {
     payments      Payment[]
 
     feedbacks Feedback[]
+
+    // Job Relations (as client)
+    posted_jobs Job[] @relation("JobClient")
+
+    @@map("users")
 }
 
 model Admin {
-    id               String         @id @default(cuid())
+    id               Int       @id @default(autoincrement())
     profile_photo    String?
     name             String
-    email            String         @unique
+    email            String    @unique
     password         String
-    is_active        Boolean        @default(false)
-    is_super_admin   Boolean        @default(false)
+    is_active        Boolean   @default(false)
+    is_super_admin   Boolean   @default(false)
     access_token     String?
     last_login       DateTime?
     generated_otp    Int?
     otp_generated_at DateTime?
-    created_at       DateTime       @default(now())
-    updated_at       DateTime       @updatedAt
-    permissions      String
-    Message          Message[]
-    Conversation     Conversation[]
+    created_at       DateTime  @default(now())
+    updated_at       DateTime  @updatedAt
+    permissions      String[]  @default([])
+
+    // Relations
+    Message         Message[]
+    Conversation    Conversation[]
+    awarded_jobs    Job[]          @relation("AdminAwardedJobs")
 }

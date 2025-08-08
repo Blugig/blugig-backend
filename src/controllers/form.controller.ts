@@ -1,7 +1,6 @@
 import { Request } from 'express';
 import { prisma } from '../lib/prisma';
 import CustomResponse from '../utils/customResponse';
-import { generateFileUrl } from '../lib/fileUpload';
 import { Prisma } from '@prisma/client';
 import { formSelectFields } from '../lib/serializers/form';
 
@@ -115,28 +114,6 @@ class FormController {
                         });
                         break;
                     case 'ONE':
-                        // Check if the slot is available based on capacity
-                        const slotBookings = await tx.timeSlotBooking.count({
-                            where: {
-                                date: new Date(formData.preferred_date),
-                                time_slot_id: formData.time_slot_id
-                            }
-                        });
-
-                        const timeSlot = await tx.timeSlot.findUnique({
-                            where: { id: formData.time_slot_id },
-                            select: { capacity: true }
-                        });
-
-                        if (!timeSlot) {
-                            throw new Error('Selected time slot does not exist.');
-                        }
-
-                        if (slotBookings >= timeSlot.capacity) {
-                            throw new Error('Selected time slot is already fully booked for this date.');
-                        }
-
-                        // Create the BookOneOnOne form
                         detailsData = await tx.bookOneOnOne.create({
                             data: {
                                 form_submission_id: formSubmission.id,
@@ -145,15 +122,6 @@ class FormController {
                                 consultation_focus: formData.consultation_focus,
                                 smartsheet_experience: formData.smartsheet_experience,
                                 team_size: formData.team_size
-                            }
-                        });
-
-                        // Create the TimeSlotBooking
-                        await tx.timeSlotBooking.create({
-                            data: {
-                                date: new Date(formData.preferred_date),
-                                time_slot_id: formData.time_slot_id,
-                                book_one_on_one_id: detailsData.id
                             }
                         });
                         break;
@@ -423,6 +391,7 @@ class FormController {
                 return res.failure('Invalid form ID', { id: req.params.id }, 400);
             }
 
+            // TODO: isme convo dalna hai and payment
             const formSubmission = await prisma.formSubmission.findUnique({
                 where: { id: +formId },
                 include: {
@@ -443,22 +412,6 @@ class FormController {
                             phone: true
                         }
                     },
-                    conversation: {
-                        select: {
-                            id: true,
-                            user_id: true,
-                        }
-                    },
-                    payment: {
-                        select: {
-                            id: true,
-                            base_amount: true,
-                            platform_fee_amount: true,
-                            tax_amount: true,
-                            total_amount: true,
-                            created_at: true
-                        }
-                    }
                 }
             });
 
@@ -479,56 +432,57 @@ class FormController {
 
     async getFormMessages(req: Request, res: CustomResponse) {
         try {
-            const { formId, formType } = req.body;
+            const { jobId } = req.body;
 
-            if (isNaN(formId)) {
-                return res.failure('Invalid form ID', { id: formId }, 400);
+            if (isNaN(jobId)) {
+                return res.failure('Invalid form ID', { id: jobId }, 400);
             }
 
-            const formSubmission = await prisma.formSubmission.findUnique({
-                where: { id: +formId },
-                include: {
-                    ...formSelectFields,
-                    conversation: {
-                        select: {
-                            id: true,
-                            user_id: true,
-                            admin: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    profile_photo: true,
-                                }
-                            },
-                            messages: {
-                                include: {
-                                    offer: {
-                                        select: {
-                                            id: true,
-                                            status: true,
-                                            type: true,
-                                            budget: true,
-                                            description: true,
-                                            timeline: true,
-                                            name: true,
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            // TODO: fix the entire logic now
+            // const formSubmission = await prisma.job.findUnique({
+            //     where: { id: +jobId },
+            //     include: {
+            //         // ...formSelectFields,
+            //         conversation: {
+            //             select: {
+            //                 id: true,
+            //                 user_id: true,
+            //                 admin: {
+            //                     select: {
+            //                         id: true,
+            //                         name: true,
+            //                         profile_photo: true,
+            //                     }
+            //                 },
+            //                 messages: {
+            //                     include: {
+            //                         offer: {
+            //                             select: {
+            //                                 id: true,
+            //                                 status: true,
+            //                                 type: true,
+            //                                 budget: true,
+            //                                 description: true,
+            //                                 timeline: true,
+            //                                 name: true,
+            //                             }
+            //                         }
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // });
 
-            if (!formSubmission) {
-                return res.failure("Form not found", { formId }, 404);
-            }
+            // if (!formSubmission) {
+            //     return res.failure("Form not found", { formId }, 404);
+            // }
 
-            if (formSubmission.user_id !== (req as any).user.id) {
-                return res.failure('Unauthorized to access this form', {}, 403);
-            }
+            // if (formSubmission.user_id !== (req as any).user.id) {
+            //     return res.failure('Unauthorized to access this form', {}, 403);
+            // }
 
-            return res.success("Form messages fetched successfully", formSubmission.conversation);
+            return res.success("Form messages fetched successfully", {});
 
         } catch (error) {
             console.error('Error fetching form messages:', error);

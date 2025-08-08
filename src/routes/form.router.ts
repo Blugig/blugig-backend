@@ -1,6 +1,5 @@
 import express from 'express';
 import FormController from '../controllers/form.controller';
-import * as serviceViewController from '../controllers/service/view.controller';
 import { authenticate } from '../middleware/authenticate';
 
 const formRouter: any = express.Router();
@@ -37,12 +36,6 @@ formRouter.post(
     '/edit',
     authenticate,
     FormController.editForm
-);
-
-formRouter.post(
-    '/get-available-slots',
-    authenticate,
-    serviceViewController.getAvailableSlots
 );
 
 export default formRouter;

@@ -90,7 +90,8 @@ export default sendVerificationEmail;
 export const sendCredentialEmail = async (
     email: string,
     name: string,
-    password: string
+    password: string,
+    title="Your Admin Dashboard Credentials"
 ) => {
     try {
         const transporter = nodemailer.createTransport({
@@ -149,7 +150,7 @@ export const sendCredentialEmail = async (
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>Admin Dashboard Access</h1>
+                        <h1>${title}</h1>
                     </div>
                     <div class="content">
                         <p>Hello ${name},</p>

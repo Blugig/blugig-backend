@@ -47,7 +47,7 @@ export const login = async (req: Request, res: CustomResponse) => {
             email: user.email,
             access_token: token,
             is_super_admin: user.is_super_admin,
-            permissions: user.permissions.split(","),
+            permissions: user.permissions,
         }, 200);
     } catch (error) {
         res.failure("Failed to login", error, 500);
@@ -240,7 +240,6 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                 book_one_on_one: true,
                 pmo_control_center: true,
                 license_request: true,
-                conversation: true
             }
         });
 
@@ -276,6 +275,7 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                     break;
             }
 
+            // TODO: fix conversation
             return {
                 created_at: submission.created_at,
                 form_id: submission.id,
@@ -283,7 +283,7 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                 form_name: getFormName(submission.form_type),
                 form_title: details[getFormTitleKey(submission.form_type)] || null,
                 form_description: details[getFormDescriptionKey(submission.form_type)] || null,
-                conversation_uuid: submission.conversation?.id || null
+                // conversation_uuid: submission.conversation?.id || null
             };
         });
 
@@ -300,17 +300,18 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
 export const createConverstaion = async (req: Request, res: CustomResponse) => {
     try {
         const id = (req as any).user.id;
-        const { userId, formId } = req.body;
+        const { userId, jobId } = req.body;
 
-        const conversation = await prisma.conversation.create({
-            data: {
-                user_id: userId,
-                form_id: formId,
-                admin_id: id,
-            }
-        });
+        // TODO: fix conversation for freelancer or admin
+        // const conversation = await prisma.conversation.create({
+        //     data: {
+        //         user_id: userId,
+        //         job_id: jobId,
+        //         admin_id: id,
+        //         conversation_type: 'admin' | 'freelancer',
+        // });
 
-        res.success("Chat session created successfully", conversation, 200);
+        res.success("Chat session created successfully", {}, 200);
 
     } catch (error) {
         res.failure("Failed to create chat session", error, 500);

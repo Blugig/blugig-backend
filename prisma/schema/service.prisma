@@ -11,27 +11,29 @@ model Feedback {
 model Review {
     id              Int    @id @default(autoincrement())
     review          String
-    communication   Int
-    quality_of_work Int
-    timeliness      Int
-    value_for_money Int
+    communication   Int    // 1-5 rating
+    quality_of_work Int    // 1-5 rating
+    timeliness      Int    // 1-5 rating
+    value_for_money Int    // 1-5 rating
 
-    user_id Int  @unique
+    // Who gives the review (always a User/client)
+    user_id Int
     user    User @relation(fields: [user_id], references: [id])
 
-    form_submission_id Int            @unique
-    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+    // What job is being reviewed
+    job_id Int @unique
+    job    Job @relation("JobReview", fields: [job_id], references: [id])
 
     created_at DateTime @default(now())
 
-    @@unique([user_id, form_submission_id])
+    @@unique([user_id, job_id])
 }
 
 model Cancellation {
-    id                 Int     @id @default(autoincrement())
+    id                 Int      @id @default(autoincrement())
     comments           String?
-    reason             String // comma separated
-    is_refund_eligible Boolean @default(false)
+    reason             String[]
+    is_refund_eligible Boolean  @default(false)
 
     user_id Int  @unique
     user    User @relation(fields: [user_id], references: [id])
@@ -65,6 +67,10 @@ model Refund {
     form_submission_id Int            @unique
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
 
+    // Job relation
+    job_id Int? @unique
+    job    Job? @relation("JobRefund", fields: [job_id], references: [id])
+
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 
@@ -89,6 +95,10 @@ model Report {
 
     form_submission_id Int
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+
+    // Job relation
+    job_id Int?
+    job    Job? @relation("JobReports", fields: [job_id], references: [id])
 
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
@@ -118,11 +128,8 @@ model Payment {
     offer_id Int   @unique
     offer    Offer @relation(fields: [offer_id], references: [id])
 
-    form_submission_id Int            @unique
-    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
-
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 
-    @@unique([user_id, form_submission_id, offer_id])
+    @@unique([user_id, offer_id])
 }

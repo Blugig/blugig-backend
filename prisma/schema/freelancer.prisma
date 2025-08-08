@@ -1,0 +1,81 @@
+model Freelancer {
+    id            Int      @id @default(autoincrement())
+    
+    // Personal Details
+    profile_photo String?
+    name          String
+    email         String   @unique
+    country_code  String
+    phone         String
+    password      String?
+    skills        String[]
+
+    // Account Details
+    is_active        Boolean   @default(false)
+    is_approved      Boolean   @default(false)
+    access_token     String?
+    last_login       DateTime?
+    generated_otp    Int?
+    otp_generated_at DateTime?
+
+    // Timestamps
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    deleted_at DateTime?
+
+    // Relations
+    awarded_jobs     Job[]          @relation("FreelancerAwardedJobs")
+    conversations    Conversation[] @relation("FreelancerConversation")
+    messages         Message[]      @relation("FreelancerMessage")
+
+    @@map("freelancers")
+}
+
+// Job Model
+model Job {
+    id                 Int @id @default(autoincrement())
+    form_submission_id Int @unique // Auto-created for every form submission
+    client_id          Int // User who posted the job
+
+    // Award Details
+    awarded_admin_id      Int? // ID of admin who got the job
+    awarded_freelancer_id Int? // ID of freelancer who got the job
+    awarded_to_user_type  AwardedUserType? // admin or freelancer
+
+    // Job Status & Type
+    job_type JobType @default(internal) // internal/open/awarded
+
+    // Timestamps
+    awarded_at DateTime? // When job was awarded
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+
+    // Relations
+    form_submission FormSubmission @relation(fields: [form_submission_id], references: [id])
+    client          User           @relation("JobClient", fields: [client_id], references: [id])
+
+    // Award Relations
+    awarded_admin      Admin?      @relation("AdminAwardedJobs", fields: [awarded_admin_id], references: [id])
+    awarded_freelancer Freelancer? @relation("FreelancerAwardedJobs", fields: [awarded_freelancer_id], references: [id])
+
+    // Other Relations
+    offers        Offer[]        // All offers for this job
+    conversations Conversation[] @relation("JobConversation")
+    reports       Report[]       @relation("JobReports")
+    refund        Refund?        @relation("JobRefund")
+    review        Review?        @relation("JobReview")
+
+    @@map("jobs")
+}
+
+// Enums
+enum JobType {
+    internal
+    open
+    awarded
+}
+
+enum AwardedUserType {
+    admin
+    freelancer
+}

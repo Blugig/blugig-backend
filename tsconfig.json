@@ -25,6 +25,9 @@
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "baseUrl": "src",
+        "paths": {
+            "@/*": ["*"]
+        }
     },
     "include": [
         "src/**/*.ts",

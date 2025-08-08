@@ -285,24 +285,13 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = (req as any).user;
 
+        // TODO: fix history retrieval logic
         const formSubmissions = await prisma.formSubmission.findMany({
             where: { user_id: parseInt(id) },
             orderBy: { created_at: 'desc' },
             include: {
                 ...formSelectFields,
-                conversation: true,
-                review: true,
                 reports: true,
-                payment: {
-                    select: {
-                        id: true,
-                        base_amount: true,
-                        platform_fee_amount: true,
-                        tax_amount: true,
-                        total_amount: true,
-                        created_at: true
-                    }
-                }
             }
         });
 
@@ -347,11 +336,11 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
                 form_description: details[getFormDescriptionKey(submission.form_type)] || null,
                 created_at: submission.created_at,
 
-                payment: submission.payment,
-                review: submission.review,
+                // payment: submission.payment,
+                // review: submission.review,
                 reports: submission.reports,
                 
-                conversation_uuid: submission.conversation?.id || null,
+                // conversation_uuid: submission.conversation?.id || null,
             };
         });
 

@@ -18,12 +18,16 @@ model Offer {
     budget          Int
     estimated_hours String?
     total_cost      Int?
-    deliverables    String?
+    deliverables    String[]
     status          OfferStatus @default(pending)
     type            OfferType   @default(general)
 
     user_id Int
     user    User @relation(fields: [user_id], references: [id])
+    
+    // Job relation
+    job_id Int?
+    job    Job? @relation(fields: [job_id], references: [id])
 
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
@@ -81,23 +85,21 @@ model FormSubmission {
     adhoc_request           AdhocRequest?
 
     // other relations
-    conversation Conversation?
-    review       Review?
     cancellation Cancellation?
     refund       Refund?
-    payment      Payment?
     reports      Report[]
+    job          Job? // Auto-created job for every form submission
 }
 
 model SolutionImplementation {
-    id                      Int    @id @default(autoincrement())
+    id                      Int      @id @default(autoincrement())
     project_title           String
     implementation_type     String
     description             String
     team_size               String
-    departments_involved    String
+    departments_involved    String[]
     current_tools           String
-    implementation_features String
+    implementation_features String[]
     timeline                String
     budget                  String
     requirements            String
@@ -107,7 +109,7 @@ model SolutionImplementation {
 }
 
 model ApiIntegration {
-    id                     Int    @id @default(autoincrement())
+    id                     Int      @id @default(autoincrement())
     integration_type       String
     source_system          String
     data_to_sync           String
@@ -115,8 +117,8 @@ model ApiIntegration {
     sync_frequency         String
     api_access_available   String
     data_volumne           String
-    technical_requirements String
-    integration_features   String
+    technical_requirements String[]
+    integration_features   String[]
     timeline               String
     budget                 String
     description            String
@@ -125,13 +127,27 @@ model ApiIntegration {
     form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
 }
 
+model BookOneOnOne {
+    id                    Int    @id @default(autoincrement())
+    preferred_date        String // Keep as backup
+    preferred_time        String // Keep as backup
+    consultation_focus    String
+    smartsheet_experience String
+    team_size             String
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id], onDelete: Cascade)
+
+    @@map("book_one_on_ones")
+}
+
 model HireSmartsheetExpert {
-    id                Int    @id @default(autoincrement())
+    id                Int      @id @default(autoincrement())
     position_type     String
     job_title         String
     company_name      String
     location          String
-    required_skills   String
+    required_skills   String[]
     experience_level  String
     budget            String
     start_date        String
@@ -143,13 +159,13 @@ model HireSmartsheetExpert {
 }
 
 model SystemAdminSupport {
-    id                       Int    @id @default(autoincrement())
+    id                       Int      @id @default(autoincrement())
     support_needed           String
     smartsheet_plan          String
     number_of_users          String
     current_admin_experience String
     current_challenges       String
-    admin_task_needed        String
+    admin_task_needed        String[]
     support_frequency        String
     timezone                 String
     urgency_level            String
@@ -161,9 +177,9 @@ model SystemAdminSupport {
 }
 
 model PremiumAppSupport {
-    id                      Int    @id @default(autoincrement())
+    id                      Int      @id @default(autoincrement())
     organization_name       String
-    premium_addons          String
+    premium_addons          String[]
     primary_use_case        String
     current_smartsheet_plan String
     team_size               String
@@ -178,10 +194,10 @@ model PremiumAppSupport {
 }
 
 model PmoControlCenter {
-    id                            Int    @id @default(autoincrement())
+    id                            Int      @id @default(autoincrement())
     organization_name             String
     control_centre_type           String
-    required_features             String
+    required_features             String[]
     expected_project_scale        String
     team_size                     String
     current_smartsheet_experience String
@@ -211,8 +227,8 @@ model LicenseRequest {
 }
 
 model AdhocRequest {
-    id                Int    @id @default(autoincrement())
-    need_help_with    String
+    id                Int      @id @default(autoincrement())
+    need_help_with    String[]
     description       String
     urgency_level     String
     budget            String

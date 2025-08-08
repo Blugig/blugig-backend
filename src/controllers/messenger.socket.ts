@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken'; // Import jsonwebtoken
 interface AuthenticatedSocket extends Socket {
     user?: {
         id: number | string;
-        userType: 'customer' | 'admin';
+        userType: 'customer' | 'admin' | 'freelancer';
     };
 }
 
@@ -20,13 +20,13 @@ interface AuthenticatedSocket extends Socket {
  *
  * @param conversationId The ID of the conversation to update.
  * @param participantId The ID of the participant (user or admin) who is viewing the conversation.
- * @param participantRole The role of the participant ('user' or 'admin').
+ * @param participantRole The role of the participant ('customer', 'admin', or 'freelancer').
  * @returns The number of messages that were newly marked as seen.
  */
 export const markMessagesAsSeen = async (
     conversationId: string,
     participantId: number | string,
-    participantRole: 'customer' | 'admin'
+    participantRole: 'customer' | 'admin' | 'freelancer'
 ): Promise<number> => {
     try {
         // 1. Fetch the conversation to get its current last_seen_message_id
@@ -38,6 +38,8 @@ export const markMessagesAsSeen = async (
                 unread_count: true,
                 user_id: true,
                 admin_id: true,
+                freelancer_id: true,
+                conversation_type: true,
             },
         });
 
@@ -49,7 +51,8 @@ export const markMessagesAsSeen = async (
         // Ensure the participant is actually part of this conversation
         if (
             (participantRole === 'customer' && conversation.user_id !== (participantId as number)) ||
-            (participantRole === 'admin' && conversation.admin_id !== (participantId as string))
+            (participantRole === 'admin' && conversation.admin_id !== (participantId as number)) ||
+            (participantRole === 'freelancer' && conversation.freelancer_id !== (participantId as number))
         ) {
             console.warn(`Participant ${participantId} (${participantRole}) is not associated with conversation ${conversationId}.`);
             return 0;
@@ -58,9 +61,14 @@ export const markMessagesAsSeen = async (
         // Construct the sender exclusion filter based on the participant's role
         let senderExclusionFilter: Prisma.MessageWhereInput;
         if (participantRole === 'customer') {
+            // Customer wants to see messages NOT from themselves (from admin or freelancer)
             senderExclusionFilter = { sender_user_id: null };
-        } else {
+        } else if (participantRole === 'admin') {
+            // Admin wants to see messages NOT from themselves (from user or freelancer)
             senderExclusionFilter = { sender_admin_id: null };
+        } else {
+            // Freelancer wants to see messages NOT from themselves (from user or admin)
+            senderExclusionFilter = { sender_freelancer_id: null };
         }
 
         let currentLastSeenMessageId = conversation.last_seen_message_id || null;
@@ -174,7 +182,7 @@ export const socketHandler = (io: Server) => {
         }
 
         try {
-            const decoded = jwt.verify(token as string, process.env.JWT_SECRET as string) as { userId: number | string, userType: 'customer' | 'admin' };
+            const decoded = jwt.verify(token as string, process.env.JWT_SECRET as string) as { userId: number | string, userType: 'customer' | 'admin' | 'freelancer' };
 
             // Attach decoded user info to the socket object
             socket.user = {
@@ -270,9 +278,11 @@ export const socketHandler = (io: Server) => {
                 if (senderRole === 'customer') {
                     messageData.sender_user = { connect: { id: senderId as number } };
                 } else if (senderRole === 'admin') {
-                    messageData.sender_admin = { connect: { id: senderId as string } };
+                    messageData.sender_admin = { connect: { id: senderId as number } };
+                } else if (senderRole === 'freelancer') {
+                    messageData.sender_freelancer = { connect: { id: senderId as number } };
                 } else {
-                    // This case should ideally not be reached if userType is strictly 'user' | 'admin'
+                    // This case should ideally not be reached if userType is strictly 'customer' | 'admin' | 'freelancer'
                     throw new Error('Invalid sender role from authenticated user.');
                 }
 
@@ -300,7 +310,7 @@ export const socketHandler = (io: Server) => {
 
                     if (offer.status === 'pending') {
                         await prisma.formSubmission.updateMany({
-                            where: { conversation: { id: new_message.conversation_id } },
+                            where: { job: { conversations: { some: { id: new_message.conversation_id } } } },
                             data: { status: 'offer_pending' }
                         });
                     }

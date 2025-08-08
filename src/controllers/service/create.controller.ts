@@ -19,7 +19,7 @@ export const createReview = async (req: Request, res: CustomResponse) => {
 
         const { id } = (req as any).user;
         const {
-            formId,
+            jobId,
             review,
             communication,
             quality_of_work,
@@ -29,7 +29,7 @@ export const createReview = async (req: Request, res: CustomResponse) => {
 
         const existingReview = await prisma.review.findFirst({
             where: {
-                form_submission_id: +formId,
+                job_id: +jobId,
                 user_id: +id,
             }
         });
@@ -40,7 +40,7 @@ export const createReview = async (req: Request, res: CustomResponse) => {
 
         const newReview = await prisma.review.create({
             data: {
-                form_submission_id: +formId,
+                job_id: +jobId,
                 user_id: +id,
                 review,
                 communication,
@@ -168,9 +168,6 @@ export const createCancellation = async (req: AuthenticatedRequest, res: CustomR
             where: {
                 id: parsedFormSubmissionId,
             },
-            include: {
-                payment: true, // Include payment to check base_amount for refund
-            },
         });
 
         if (!formSubmission) {
@@ -207,17 +204,18 @@ export const createCancellation = async (req: AuthenticatedRequest, res: CustomR
         // Criteria: if status completed no refund
         const isNotCompleted = formSubmission.status !== 'completed';
 
-        if (formSubmission.created_at >= sevenDaysAgo && isNotCompleted) {
-            isRefundEligible = true;
-            // Only base amount is refundable
-            if (formSubmission.payment && formSubmission.payment.base_amount) {
-                refundAmount = formSubmission.payment.base_amount.toNumber(); // Convert Decimal to number
-            } else {
-                // If payment info is missing but refund is eligible, this indicates a data inconsistency
-                console.warn(`Refund eligible for form ${parsedFormSubmissionId} but payment base_amount is missing.`);
-                isRefundEligible = false; // Or handle as an error, depending on business logic
-            }
-        }
+        // TOOD: Fix
+        // if (formSubmission.created_at >= sevenDaysAgo && isNotCompleted) {
+        //     isRefundEligible = true;
+        //     // Only base amount is refundable
+        //     if (formSubmission.payment && formSubmission.payment.base_amount) {
+        //         refundAmount = formSubmission.payment.base_amount.toNumber(); // Convert Decimal to number
+        //     } else {
+        //         // If payment info is missing but refund is eligible, this indicates a data inconsistency
+        //         console.warn(`Refund eligible for form ${parsedFormSubmissionId} but payment base_amount is missing.`);
+        //         isRefundEligible = false; // Or handle as an error, depending on business logic
+        //     }
+        // }
 
         // 5. Create the Cancellation record and update FormSubmission status in a transaction
         const [cancellation, updatedFormSubmission] = await prisma.$transaction([
@@ -326,20 +324,21 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
             return res.failure("Form Submission does not belong to the authenticated user.", null, 403);
         }
 
-        const existingPayment = await prisma.payment.findUnique({
-            where: {
-                user_id_form_submission_id_offer_id: {
-                    user_id: uid,
-                    form_submission_id: parsedFormSubmissionId,
-                    offer_id: parsedOfferId,
-                },
-            },
-        });
+        // TODO: Fix 
+        // const existingPayment = await prisma.payment.findUnique({
+        //     where: {
+        //         user_id_form_submission_id_offer_id: {
+        //             user_id: uid,
+        //             form_submission_id: parsedFormSubmissionId,
+        //             offer_id: parsedOfferId,
+        //         },
+        //     },
+        // });
 
-        if (existingPayment) {
-            // If a payment already exists, return its details or an error indicating it's already paid
-            return res.failure("Payment for this offer and form submission already exists.", existingPayment, 400);
-        }
+        // if (existingPayment) {
+        //     // If a payment already exists, return its details or an error indicating it's already paid
+        //     return res.failure("Payment for this offer and form submission already exists.", existingPayment, 400);
+        // }
 
         // 4. Calculate amounts based on the offer budget and defined rates
         const baseAmount = new Prisma.Decimal(offer.budget);
@@ -400,7 +399,6 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
                 currency: currency,
                 user_id: uid,
                 offer_id: parsedOfferId,
-                form_submission_id: parsedFormSubmissionId,
             }
         });
 

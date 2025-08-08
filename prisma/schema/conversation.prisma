@@ -1,15 +1,24 @@
 model Conversation {
-    id         String   @id @default(uuid())
+    id                String           @id @default(uuid())
+    conversation_type ConversationType // admin or freelancer
+
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 
-    user_id  Int
-    user     User    @relation(fields: [user_id], references: [id])
-    admin_id String?
-    admin    Admin?  @relation(fields: [admin_id], references: [id])
+    // User (always present)
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
 
-    form_id Int            @unique
-    form    FormSubmission @relation(fields: [form_id], references: [id], onDelete: Cascade)
+    // Either admin OR freelancer (never both)
+    admin_id Int?
+    admin    Admin? @relation(fields: [admin_id], references: [id])
+
+    freelancer_id Int?
+    freelancer    Freelancer? @relation("FreelancerConversation", fields: [freelancer_id], references: [id])
+
+    // conversation always for a job
+    job_id Int? @unique
+    job    Job? @relation("JobConversation", fields: [job_id], references: [id], onDelete: Cascade)
 
     messages Message[]
 
@@ -18,7 +27,13 @@ model Conversation {
     latest_message       Message? @relation("LatestMessage", fields: [latest_message_id], references: [id])
     unread_count         Int?     @default(0)
 
-    @@unique([user_id, admin_id, form_id])
+    @@unique([user_id, admin_id, job_id])
+    @@unique([user_id, freelancer_id, job_id])
+}
+
+enum ConversationType {
+    admin
+    freelancer
 }
 
 enum MessageType {
@@ -45,8 +60,12 @@ model Message {
     sender_user_id Int?
     sender_user    User? @relation(fields: [sender_user_id], references: [id])
 
-    sender_admin_id String?
-    sender_admin    Admin?  @relation(fields: [sender_admin_id], references: [id])
+    sender_admin_id Int?
+    sender_admin    Admin? @relation(fields: [sender_admin_id], references: [id])
+
+    // Freelancer message support
+    sender_freelancer_id Int?
+    sender_freelancer    Freelancer? @relation("FreelancerMessage", fields: [sender_freelancer_id], references: [id])
 
     Conversation_latest_message Conversation? @relation("LatestMessage")
 }

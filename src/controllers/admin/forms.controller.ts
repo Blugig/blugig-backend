@@ -104,29 +104,6 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
                         email: true,
                         phone: true
                     }
-                },
-                conversation: {
-                    select: {
-                        id: true,
-                        user_id: true,
-                        messages: {
-                            select: {
-                                id: true,
-                                body: true,
-                                time: true,
-                                media_url: true,
-                                media_type: true,
-                                message_type: true,
-                                offer: true,
-                                conversation_id: true,
-                                sender_admin_id: true, // Changed from null to true
-                                sender_user_id: true, // Changed from null to true
-                            },
-                            orderBy: {
-                                time: 'asc'
-                            }
-                        }
-                    }
                 }
             }
         });
