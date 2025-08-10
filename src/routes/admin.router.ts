@@ -18,6 +18,9 @@ adminRouter.post('/get-email', adminController.getEmail);
 adminRouter.get('/dashboard-data', authenticate, adminController.getDashboardData);
 adminRouter.get('/get-users', authenticate, adminController.getAllUsers);
 adminRouter.get('/get-user-details/:id', authenticate, adminController.getUserDetails);
+adminRouter.get('/get-freelancers', authenticate, adminController.getFreelancers);
+adminRouter.get('/get-freelancer-details/:id', authenticate, adminController.getFreelancerDetails);
+adminRouter.get('/get-jobs', authenticate, adminController.getJobs);
 
 adminRouter.post('/file-upload', authenticate, upload.single('file'), uploadFile);
 

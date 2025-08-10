@@ -42,3 +42,16 @@ export function getFormTitleKey(formType: string): string {
         default: return 'null';
     }
 }
+
+export const PERMISSIONS = [
+    "FREE",
+    "SOL",
+    "API",
+    "EXP",
+    "ADM",
+    "ADH",
+    "PRM",
+    "ONE",
+    "PMO",
+    "LIR"
+];

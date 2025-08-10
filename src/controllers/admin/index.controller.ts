@@ -4,6 +4,8 @@ import bcrypt from 'bcrypt';
 import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import { sendCredentialEmail } from '../../utils/sendMail';
+import { PERMISSIONS } from '../../utils/misc';
+import { generateFileUrl } from '../../lib/fileUpload';
 // import { createPaginatedResponse, getPagination } from '../../utils/queryHelpers';
 
 export const getProfile = async (req: Request, res: CustomResponse) => {
@@ -14,6 +16,7 @@ export const getProfile = async (req: Request, res: CustomResponse) => {
             where: { id },
             select: {
                 id: true,
+                profile_photo: true,
                 name: true,
                 email: true,
                 is_super_admin: true,
@@ -109,18 +112,34 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
 export const updateAdmin = async (req: Request, res: CustomResponse) => {
     try {
 
-        const { email, permissions } = req.body;
+        const { email, permissions, ...data } = req.body;
+        var toUpdate = data;
+
+        if (permissions) {
+            // Check if permissions is a subset of PERMISSIONS
+            const invalidPermissions = permissions.filter((perm: string) => !PERMISSIONS.includes(perm));
+    
+            if (invalidPermissions.length > 0) {
+                return res.failure(`Invalid permissions: ${invalidPermissions.join(', ')}`, null, 400);
+            }
+
+            toUpdate.permissions = permissions.join(',');
+        }
+
+        if (req.file) {
+            const url = generateFileUrl(req.file?.filename);
+            toUpdate.profile_photo = url;
+        }
 
         const admin = await prisma.admin.update({
             where: { email },
-            data: {
-                permissions: permissions.join(','),
-            },
+            data: toUpdate
         });
 
-        res.success("Admin updated successfully", admin, 200);
+        return res.success("Admin updated successfully", admin, 200);
     } catch (error) {
-        res.failure("Failed to update admin", error, 500);
+        console.log(error);
+        return res.failure("Failed to update admin", error, 500);
     }
 }
 

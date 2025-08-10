@@ -13,6 +13,7 @@ import { responseEnhancer } from './middleware/responseEnhancer';
 import userRouter from './routes/user.router';
 import adminRouter from './routes/admin.router';
 import formRouter from './routes/form.router';
+import freelancerRouter from './routes/freelancer.router';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/admin', adminRouter)
 app.use('/users', userRouter);
 app.use('/forms', formRouter);
+app.use('/freelancers', freelancerRouter);
 
 
 app.get('/ping', (req, res) => {

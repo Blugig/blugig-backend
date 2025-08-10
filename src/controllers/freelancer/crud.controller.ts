@@ -17,6 +17,10 @@ export const login = async (req: Request, res: CustomResponse) => {
             return res.failure("Invalid credentials", null, 401);
         }
 
+        if (!user.is_active || !user.is_approved) {
+            return res.failure("Your account is not active or approved by the admin.", null, 403);
+        }
+
         // Check password
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
@@ -48,6 +52,39 @@ export const login = async (req: Request, res: CustomResponse) => {
     }
 };
 
+export const register = async (req: Request, res: CustomResponse) => {
+    try {
+        const { name, email, phone, country_code, skills } = req.body;
+
+        // Check if freelancer already exists
+        const existingFreelancer = await prisma.freelancer.findUnique({
+            where: { email }
+        });
+
+        if (existingFreelancer) {
+            return res.failure("Freelancer with this email already exists", null, 400);
+        }
+
+        // Create new freelancer
+        const newFreelancer = await prisma.freelancer.create({
+            data: {
+                name,
+                email,
+                phone,
+                country_code,
+                skills,
+                is_active: false
+            }
+        });
+
+        return res.success("Your request was submitted successfully", newFreelancer, 201);
+    } catch (error) {
+        res.failure("Failed to register freelancer", error, 500);
+    }
+};
+
+
+// TODO: add this to admin
 export const onboardFreelancer = async (req: Request, res: CustomResponse) => {
     try {
         const { email } = req.body;

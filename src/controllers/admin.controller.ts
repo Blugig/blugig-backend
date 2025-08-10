@@ -133,10 +133,12 @@ export const verifyEmail = async (req: Request, res: CustomResponse) => {
 export const getDashboardData = async (req: Request, res: CustomResponse) => {
     try {
         const users = await prisma.user.count();
+        const freelancers = await prisma.freelancer.count();
         const forms = await prisma.formSubmission.count();
+        const jobs = await prisma.job.count();
         const conversations = await prisma.conversation.count();
 
-        const [acceptedOffers, totalBudget] = await Promise.all([
+        const [acceptedOffers, totalBudget, adminConversations, freelancerConversations] = await Promise.all([
             prisma.offer.count({
                 where: { status: 'accepted' }
             }),
@@ -145,12 +147,18 @@ export const getDashboardData = async (req: Request, res: CustomResponse) => {
                 _sum: {
                     budget: true
                 }
+            }),
+            prisma.conversation.count({
+                where: { conversation_type: 'admin' }
+            }),
+            prisma.conversation.count({
+                where: { conversation_type: 'freelancer' }
             })
         ]);
 
         const offers: any = await prisma.$queryRaw`
             SELECT 
-                strftime('%Y-%m', "createdAt") AS month,
+                TO_CHAR("created_at", 'YYYY-MM') AS month,
                 status,
                 COUNT(*) as count
             FROM "Offer"
@@ -171,8 +179,12 @@ export const getDashboardData = async (req: Request, res: CustomResponse) => {
 
         res.success("Dashboard data fetched successfully", {
             users,
+            freelancers,
             forms,
+            jobs,
             conversations,
+            adminConversations,
+            freelancerConversations,
             acceptedOffers,
             totalBudget: totalBudget._sum.budget || 0,
             acceptedRejectOffersData
@@ -180,6 +192,145 @@ export const getDashboardData = async (req: Request, res: CustomResponse) => {
 
     } catch (error) {
         res.failure("Failed to get dashboard data", error, 500);
+    }
+}
+
+export const getFreelancers = async (req: Request, res: CustomResponse) => {
+    try {
+        const { page, take, skip } = getPagination(req);
+        const { is_active, is_approved } = req.query;
+
+        const where: any = {};
+        if (is_active !== undefined) where.is_active = is_active === 'true';
+        if (is_approved !== undefined) where.is_approved = is_approved === 'true';
+
+        const [freelancers, totalCount] = await Promise.all([
+            prisma.freelancer.findMany({
+                where,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    country_code: true,
+                    skills: true,
+                    is_active: true,
+                    is_approved: true,
+                    created_at: true,
+                    last_login: true,
+                    _count: {
+                        select: {
+                            awarded_jobs: true,
+                            conversations: true,
+                            messages: true
+                        }
+                    }
+                },
+                skip,
+                take,
+                orderBy: { created_at: "desc" },
+            }),
+            prisma.freelancer.count({ where }),
+        ]);
+
+        const paginatedResponse = createPaginatedResponse(freelancers, totalCount, page, take);
+
+        res.success("Freelancers fetched successfully", paginatedResponse, 200);
+    } catch (error) {
+        res.failure("Failed to fetch freelancers", error, 500);
+    }
+}
+
+export const getFreelancerDetails = async (req: Request, res: CustomResponse) => {
+    try {
+        const { id } = req.params;
+
+        const user = await prisma.freelancer.findUnique({
+            where: { id: parseInt(id) },
+            select: {
+                name: true,
+                profile_photo: true,
+                email: true,
+                phone: true,
+                last_login: true
+            }
+        });
+
+        if (!user) {
+            return res.failure("Freelancer not found", null, 404);
+        }
+
+        return res.success("Freelancer details fetched successfully", {
+            user,
+        }, 200);
+
+    } catch (error) {
+        res.failure("Failed to fetch user details", error, 500);
+    }
+}
+
+export const getJobs = async (req: Request, res: CustomResponse) => {
+    try {
+        const { page, take, skip } = getPagination(req);
+        const { job_type, awarded_to_user_type, client_id } = req.query;
+
+        const where: any = {};
+        if (job_type) where.job_type = job_type;
+        if (awarded_to_user_type) where.awarded_to_user_type = awarded_to_user_type;
+        if (client_id) where.client_id = parseInt(client_id as string);
+
+        const [jobs, totalCount] = await Promise.all([
+            prisma.job.findMany({
+                where,
+                include: {
+                    client: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
+                    awarded_admin: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
+                    awarded_freelancer: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
+                    form_submission: {
+                        select: {
+                            id: true,
+                            form_type: true,
+                            status: true,
+                            payment_status: true
+                        }
+                    },
+                    _count: {
+                        select: {
+                            offers: true,
+                            conversations: true
+                        }
+                    }
+                },
+                skip,
+                take,
+                orderBy: { created_at: "desc" },
+            }),
+            prisma.job.count({ where }),
+        ]);
+
+        const paginatedResponse = createPaginatedResponse(jobs, totalCount, page, take);
+
+        res.success("Jobs fetched successfully", paginatedResponse, 200);
+    } catch (error) {
+        res.failure("Failed to fetch jobs", error, 500);
     }
 }
 
@@ -240,6 +391,17 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                 book_one_on_one: true,
                 pmo_control_center: true,
                 license_request: true,
+                job: {
+                    include: {
+                        conversations: {
+                            select: {
+                                id: true,
+                                conversation_type: true,
+                                created_at: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
@@ -275,7 +437,6 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                     break;
             }
 
-            // TODO: fix conversation
             return {
                 created_at: submission.created_at,
                 form_id: submission.id,
@@ -283,7 +444,8 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                 form_name: getFormName(submission.form_type),
                 form_title: details[getFormTitleKey(submission.form_type)] || null,
                 form_description: details[getFormDescriptionKey(submission.form_type)] || null,
-                // conversation_uuid: submission.conversation?.id || null
+                job_id: submission.job?.id || null,
+                conversations: submission.job?.conversations || []
             };
         });
 
@@ -299,19 +461,61 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
 
 export const createConverstaion = async (req: Request, res: CustomResponse) => {
     try {
-        const id = (req as any).user.id;
-        const { userId, jobId } = req.body;
+        const adminId = (req as any).user.id;
+        const { userId, jobId, conversationType } = req.body;
 
-        // TODO: fix conversation for freelancer or admin
-        // const conversation = await prisma.conversation.create({
-        //     data: {
-        //         user_id: userId,
-        //         job_id: jobId,
-        //         admin_id: id,
-        //         conversation_type: 'admin' | 'freelancer',
-        // });
+        // Validate conversation type
+        if (!['admin', 'freelancer'].includes(conversationType)) {
+            return res.failure("Invalid conversation type. Must be 'admin' or 'freelancer'", null, 400);
+        }
 
-        res.success("Chat session created successfully", {}, 200);
+        // Check if conversation already exists for this job
+        const existingConversation = await prisma.conversation.findFirst({
+            where: {
+                user_id: userId,
+                job_id: jobId,
+                conversation_type: conversationType,
+                ...(conversationType === 'admin' ? { admin_id: adminId } : {})
+            }
+        });
+
+        if (existingConversation) {
+            return res.success("Conversation already exists", { conversationId: existingConversation.id }, 200);
+        }
+
+        // Create new conversation
+        const conversationData: any = {
+            user_id: userId,
+            job_id: jobId,
+            conversation_type: conversationType,
+        };
+
+        if (conversationType === 'admin') {
+            conversationData.admin_id = adminId;
+        }
+        // Note: freelancer_id would be set when freelancer creates/accepts the conversation
+
+        const conversation = await prisma.conversation.create({
+            data: conversationData,
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                job: {
+                    select: {
+                        id: true,
+                        job_type: true,
+                        client_id: true
+                    }
+                }
+            }
+        });
+
+        res.success("Chat session created successfully", conversation, 200);
 
     } catch (error) {
         res.failure("Failed to create chat session", error, 500);
@@ -322,15 +526,41 @@ export const getAllConversations = async (req: Request, res: CustomResponse) => 
     try {
         const conversations = await prisma.conversation.findMany({
             include: {
-                messages: true,
+                messages: {
+                    orderBy: { time: 'desc' },
+                    take: 1 // Get latest message for preview
+                },
                 user: {
                     select: {
+                        id: true,
                         name: true,
                         email: true,
                         phone: true,
                     }
+                },
+                admin: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    }
+                },
+                freelancer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                    }
+                },
+                job: {
+                    select: {
+                        id: true,
+                        job_type: true,
+                    }
                 }
-            }
+            },
+            orderBy: { updated_at: 'desc' }
         });
 
         res.success("Chat sessions fetched successfully", conversations, 200);
