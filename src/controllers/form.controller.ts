@@ -172,6 +172,15 @@ class FormController {
                         break;
                 }
 
+                // Create a Job automatically
+                await tx.job.create({
+                    data: {
+                        form_submission_id: formSubmission.id,
+                        client_id: parseInt(userId),
+                        
+                    }
+                });
+
                 return { formSubmission, detailsData };
             });
 

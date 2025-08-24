@@ -8,6 +8,8 @@ export const login = async (req: Request, res: CustomResponse) => {
     try {
         const { email, password } = req.body;
 
+        console.log("aaya", email, password);
+
         // Find user
         const user = await prisma.freelancer.findUnique({
             where: { email }
@@ -80,39 +82,5 @@ export const register = async (req: Request, res: CustomResponse) => {
         return res.success("Your request was submitted successfully", newFreelancer, 201);
     } catch (error) {
         res.failure("Failed to register freelancer", error, 500);
-    }
-};
-
-
-// TODO: add this to admin
-export const onboardFreelancer = async (req: Request, res: CustomResponse) => {
-    try {
-        const { email } = req.body;
-
-        const plainPassword = Math.random().toString(36).slice(-8);
-        const password = await bcrypt.hash(plainPassword, 14);
-
-        const existingAdmin = await prisma.freelancer.findUnique({
-            where: { email }
-        });
-
-        if (existingAdmin) {
-            return res.failure("Freelancer with this email already exists", null, 400);
-        }
-
-        const user = await prisma.freelancer.update({
-            where: { email },
-            data: {
-                email,
-                password,
-                is_active: true,
-            },
-        });
-
-        sendCredentialEmail(email, user.name, plainPassword, "Your Freelancer request has been approved.");
-
-        return res.success("Admin added successfully", user, 200);
-    } catch (error) {
-        res.failure("Failed to onboard freelancer", error, 500);
     }
 };

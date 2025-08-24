@@ -6,10 +6,12 @@ Freelancer Feature Revamp Updates
 - FREELANCER
 
   - [X] register from landing page
-  - [ ] receive mail on approval
-- USER
+  - [X] receive mail on approval
+  - [X] create freelancer login and profile
+  - [ ] create views n permissions management for freelancer
 - DASHBOARD
 
   - [X] Dashboard page update
-  - [ ] Create Freelancer and Jobs tab under main
-  - [ ] select multiple forms and update thier job status
+  - [X] Create Freelancer and Jobs tab under main
+  - [X] select multiple forms and update thier job status
+  - [X] add profile page

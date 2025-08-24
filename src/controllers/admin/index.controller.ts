@@ -10,23 +10,41 @@ import { generateFileUrl } from '../../lib/fileUpload';
 
 export const getProfile = async (req: Request, res: CustomResponse) => {
     try {
-        const { id } = (req as any).user;
+        const { id, userType } = (req as any).user;
+        var user = {};
 
-        const admin = await prisma.admin.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                profile_photo: true,
-                name: true,
-                email: true,
-                is_super_admin: true,
-                permissions: true,
-                created_at: true,
-                last_login: true,
-            }
-        });
+        if (userType === 'admin') {
+            user = await prisma.admin.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    profile_photo: true,
+                    name: true,
+                    email: true,
+                    is_super_admin: true,
+                    permissions: true,
+                    created_at: true,
+                    last_login: true,
+                }
+            });
+        } else if (userType === 'freelancer') {
+            user = await prisma.freelancer.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    profile_photo: true,
+                    name: true,
+                    email: true,
+                    skills: true,
+                    created_at: true,
+                    last_login: true,
+                }
+            });
+        }
 
-        res.success("Profile fetched successfully", admin, 200);
+        user = { ...user, userType };
+
+        res.success("Profile fetched successfully", user, 200);
     } catch (error) {
         res.failure("Failed to fetch profile", error, 500);
     }
@@ -111,7 +129,7 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
 
 export const updateAdmin = async (req: Request, res: CustomResponse) => {
     try {
-
+        const { userType } = (req as any).user;
         const { email, permissions, ...data } = req.body;
         var toUpdate = data;
 
@@ -131,12 +149,20 @@ export const updateAdmin = async (req: Request, res: CustomResponse) => {
             toUpdate.profile_photo = url;
         }
 
-        const admin = await prisma.admin.update({
-            where: { email },
-            data: toUpdate
-        });
+        if (userType === 'freelancer') {
+            await prisma.freelancer.update({
+                where: { email },
+                data: toUpdate
+            });
+        } else {
+            await prisma.admin.update({
+                where: { email },
+                data: toUpdate
+            });
+        }
 
-        return res.success("Admin updated successfully", admin, 200);
+
+        return res.success("Profile updated successfully", {}, 200);
     } catch (error) {
         console.log(error);
         return res.failure("Failed to update admin", error, 500);

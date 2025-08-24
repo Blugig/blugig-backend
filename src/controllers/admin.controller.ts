@@ -7,6 +7,7 @@ import sendVerificationEmail, { generateAccessToken } from '../utils/sendMail';
 import { createPaginatedResponse, getPagination } from '../utils/queryHelpers';
 import { basicUserFields } from '../lib/serializers/user';
 import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
+import { formSelectFields } from '../lib/serializers/form';
 
 export const login = async (req: Request, res: CustomResponse) => {
     try {
@@ -198,11 +199,14 @@ export const getDashboardData = async (req: Request, res: CustomResponse) => {
 export const getFreelancers = async (req: Request, res: CustomResponse) => {
     try {
         const { page, take, skip } = getPagination(req);
-        const { is_active, is_approved } = req.query;
+        const { user_id, is_active, is_approved } = req.query;
 
         const where: any = {};
-        if (is_active !== undefined) where.is_active = is_active === 'true';
-        if (is_approved !== undefined) where.is_approved = is_approved === 'true';
+        if (user_id) where.id = user_id;
+        if (is_active !== 'all') where.is_active = is_active === 'true';
+        if (is_approved !== 'all') where.is_approved = is_approved === 'true';
+
+        console.log("ye hai", is_active, is_approved);
 
         const [freelancers, totalCount] = await Promise.all([
             prisma.freelancer.findMany({
@@ -213,18 +217,9 @@ export const getFreelancers = async (req: Request, res: CustomResponse) => {
                     email: true,
                     phone: true,
                     country_code: true,
-                    skills: true,
                     is_active: true,
                     is_approved: true,
                     created_at: true,
-                    last_login: true,
-                    _count: {
-                        select: {
-                            awarded_jobs: true,
-                            conversations: true,
-                            messages: true
-                        }
-                    }
                 },
                 skip,
                 take,
@@ -248,11 +243,14 @@ export const getFreelancerDetails = async (req: Request, res: CustomResponse) =>
         const user = await prisma.freelancer.findUnique({
             where: { id: parseInt(id) },
             select: {
-                name: true,
+                id: true,
                 profile_photo: true,
+                name: true,
                 email: true,
+                country_code: true,
                 phone: true,
-                last_login: true
+                last_login: true,
+                created_at: true,
             }
         });
 
@@ -269,15 +267,16 @@ export const getFreelancerDetails = async (req: Request, res: CustomResponse) =>
     }
 }
 
-export const getJobs = async (req: Request, res: CustomResponse) => {
+export const getAllJobs = async (req: Request, res: CustomResponse) => {
     try {
         const { page, take, skip } = getPagination(req);
-        const { job_type, awarded_to_user_type, client_id } = req.query;
+        const { job_type, awarded_to_user_type, client_id, job_id } = req.query;
 
         const where: any = {};
-        if (job_type) where.job_type = job_type;
-        if (awarded_to_user_type) where.awarded_to_user_type = awarded_to_user_type;
+        if (job_type && job_type !== 'all') where.job_type = job_type;
+        if (awarded_to_user_type && awarded_to_user_type !== 'all') where.awarded_to_user_type = awarded_to_user_type;
         if (client_id) where.client_id = parseInt(client_id as string);
+        if (job_id) where.id = parseInt(job_id as string);
 
         const [jobs, totalCount] = await Promise.all([
             prisma.job.findMany({
@@ -305,12 +304,7 @@ export const getJobs = async (req: Request, res: CustomResponse) => {
                         }
                     },
                     form_submission: {
-                        select: {
-                            id: true,
-                            form_type: true,
-                            status: true,
-                            payment_status: true
-                        }
+                        include: formSelectFields
                     },
                     _count: {
                         select: {
@@ -325,11 +319,59 @@ export const getJobs = async (req: Request, res: CustomResponse) => {
             }),
             prisma.job.count({ where }),
         ]);
+        
+        // Process jobs to add form details
+        const processedJobs = jobs.map(job => {
+            if (job.form_submission) {
+                let details: any;
+                switch (job.form_submission.form_type) {
+                    case 'SOL':
+                        details = job.form_submission.solution_implementation;
+                        break;
+                    case 'API':
+                        details = job.form_submission.api_integration;
+                        break;
+                    case 'EXP':
+                        details = job.form_submission.hire_smartsheet_expert;
+                        break;
+                    case 'ADM':
+                        details = job.form_submission.system_admin_support;
+                        break;
+                    case 'ADH':
+                        details = job.form_submission.adhoc_request;
+                        break;
+                    case 'PRM':
+                        details = job.form_submission.premium_app_support;
+                        break;
+                    case 'ONE':
+                        details = job.form_submission.book_one_on_one;
+                        break;
+                    case 'PMO':
+                        details = job.form_submission.pmo_control_center;
+                        break;
+                    case 'LIR':
+                        details = job.form_submission.license_request;
+                        break;
+                }
 
-        const paginatedResponse = createPaginatedResponse(jobs, totalCount, page, take);
+                return {
+                    ...job,
+                    form_submission: {
+                        ...job.form_submission,
+                        form_name: getFormName(job.form_submission.form_type),
+                        form_title: details ? details[getFormTitleKey(job.form_submission.form_type)] || null : null,
+                        form_description: details ? details[getFormDescriptionKey(job.form_submission.form_type)] || null : null,
+                    }
+                };
+            }
+            return job;
+        });
+
+        const paginatedResponse = createPaginatedResponse(processedJobs, totalCount, page, take);
 
         res.success("Jobs fetched successfully", paginatedResponse, 200);
     } catch (error) {
+        console.log(error);
         res.failure("Failed to fetch jobs", error, 500);
     }
 }
