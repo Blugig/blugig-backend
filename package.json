@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "npm run build && node dist/index.js",
     "db:generate": "npx prisma generate --schema=./prisma/schema/",
-
     "db:migrate": "npx prisma migrate dev --schema=./prisma/schema/",
     "db:deploy": "npx prisma migrate deploy --schema=./prisma/schema/",
-    
     "db:studio": "npx prisma studio --schema=./prisma/schema/"
   },
   "keywords": [],

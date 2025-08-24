@@ -2,9 +2,8 @@ module.exports = {
     apps: [
         {
             name: "backend",
-            script: "src/index.ts",
-            interpreter: "node",
-            interpreter_args: "-r ts-node/register",
+            script: "npm",
+            args: "run start",
             instances: 1,
             autorestart: true,
             watch: false,
