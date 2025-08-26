@@ -8,6 +8,7 @@ import { createPaginatedResponse, getPagination } from '../utils/queryHelpers';
 import { basicUserFields } from '../lib/serializers/user';
 import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
 import { formSelectFields } from '../lib/serializers/form';
+import { ConversationType } from '@prisma/client';
 
 export const login = async (req: Request, res: CustomResponse) => {
     try {
@@ -239,9 +240,10 @@ export const getFreelancers = async (req: Request, res: CustomResponse) => {
 export const getFreelancerDetails = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = req.params;
+        const freelancerId = parseInt(id);
 
         const user = await prisma.freelancer.findUnique({
-            where: { id: parseInt(id) },
+            where: { id: freelancerId },
             select: {
                 id: true,
                 profile_photo: true,
@@ -249,6 +251,8 @@ export const getFreelancerDetails = async (req: Request, res: CustomResponse) =>
                 email: true,
                 country_code: true,
                 phone: true,
+                is_active: true,
+                is_approved: true,
                 last_login: true,
                 created_at: true,
             }
@@ -258,12 +262,193 @@ export const getFreelancerDetails = async (req: Request, res: CustomResponse) =>
             return res.failure("Freelancer not found", null, 404);
         }
 
+        // Get freelancer statistics
+        const [
+            awardedJobs,
+            activeConversations,
+            totalJobsApplied,
+            totalOffersReceived
+        ] = await Promise.all([
+            // Jobs awarded to this freelancer
+            prisma.job.count({
+                where: {
+                    job_type: 'awarded',
+                    awarded_to_user_type: 'freelancer',
+                    awarded_freelancer_id: freelancerId
+                }
+            }),
+            // Jobs with active conversations by this freelancer
+            prisma.job.count({
+                where: {
+                    job_type: 'open',
+                    conversations: {
+                        some: {
+                            freelancer_id: freelancerId
+                        }
+                    }
+                }
+            }),
+            // Total jobs applied to (conversations started)
+            prisma.conversation.count({
+                where: {
+                    freelancer_id: freelancerId
+                }
+            }),
+            // Total offers received by jobs this freelancer was awarded
+            prisma.offer.count({
+                where: {
+                    job: {
+                        awarded_freelancer_id: freelancerId,
+                        job_type: 'awarded'
+                    },
+                    status: 'accepted'
+                }
+            })
+        ]);
+
+        // Calculate total earnings from jobs this freelancer was awarded
+        const totalEarningsResult = await prisma.offer.aggregate({
+            where: {
+                job: {
+                    awarded_freelancer_id: freelancerId,
+                    job_type: 'awarded'
+                },
+                status: 'accepted'
+            },
+            _sum: {
+                budget: true
+            }
+        });
+
+        // Calculate conversion rate (awarded jobs / total applied jobs * 100)
+        const conversionRate = totalJobsApplied > 0 
+            ? ((awardedJobs / totalJobsApplied) * 100).toFixed(1)
+            : 0;
+
+        const stats = {
+            awardedJobs,
+            activeConversations,
+            totalEarnings: totalEarningsResult._sum.budget || 0,
+            conversionRate: parseFloat(conversionRate as string)
+        };
+
+        // Get jobs that this freelancer is involved in
+        const freelancerJobs = await prisma.job.findMany({
+            where: {
+                OR: [
+                    // Jobs awarded to this freelancer
+                    {
+                        job_type: 'awarded',
+                        awarded_to_user_type: 'freelancer',
+                        awarded_freelancer_id: freelancerId
+                    },
+                    // Jobs where freelancer has conversations
+                    {
+                        conversations: {
+                            some: {
+                                freelancer_id: freelancerId
+                            }
+                        }
+                    }
+                ]
+            },
+            include: {
+                client: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                form_submission: {
+                    include: {
+                        solution_implementation: true,
+                        api_integration: true,
+                        hire_smartsheet_expert: true,
+                        system_admin_support: true,
+                        adhoc_request: true,
+                        premium_app_support: true,
+                        book_one_on_one: true,
+                        pmo_control_center: true,
+                        license_request: true,
+                    }
+                },
+                conversations: {
+                    where: {
+                        freelancer_id: freelancerId
+                    },
+                    select: {
+                        id: true,
+                        conversation_type: true,
+                        created_at: true
+                    }
+                },
+                _count: {
+                    select: {
+                        offers: true,
+                        conversations: true
+                    }
+                }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+
+        // Process jobs to add form details
+        const processedJobs = freelancerJobs.map(job => {
+            if (job.form_submission) {
+                let details: any;
+                switch (job.form_submission.form_type) {
+                    case 'SOL':
+                        details = job.form_submission.solution_implementation;
+                        break;
+                    case 'API':
+                        details = job.form_submission.api_integration;
+                        break;
+                    case 'EXP':
+                        details = job.form_submission.hire_smartsheet_expert;
+                        break;
+                    case 'ADM':
+                        details = job.form_submission.system_admin_support;
+                        break;
+                    case 'ADH':
+                        details = job.form_submission.adhoc_request;
+                        break;
+                    case 'PRM':
+                        details = job.form_submission.premium_app_support;
+                        break;
+                    case 'ONE':
+                        details = job.form_submission.book_one_on_one;
+                        break;
+                    case 'PMO':
+                        details = job.form_submission.pmo_control_center;
+                        break;
+                    case 'LIR':
+                        details = job.form_submission.license_request;
+                        break;
+                }
+
+                return {
+                    ...job,
+                    form_submission: {
+                        ...job.form_submission,
+                        form_name: getFormName(job.form_submission.form_type),
+                        form_title: details ? details[getFormTitleKey(job.form_submission.form_type)] || null : null,
+                        form_description: details ? details[getFormDescriptionKey(job.form_submission.form_type)] || null : null,
+                    }
+                };
+            }
+            return job;
+        });
+
         return res.success("Freelancer details fetched successfully", {
             user,
+            stats,
+            jobs: processedJobs
         }, 200);
 
     } catch (error) {
-        res.failure("Failed to fetch user details", error, 500);
+        console.log(error);
+        res.failure("Failed to fetch freelancer details", error, 500);
     }
 }
 
@@ -376,6 +561,215 @@ export const getAllJobs = async (req: Request, res: CustomResponse) => {
     }
 }
 
+export const getJobDetails = async (req: Request, res: CustomResponse) => {
+    try {
+        const { id, userType } = (req as any).user;
+        const { id: jobId } = req.params;
+
+        // Fetch the job with all related data
+        const job = await prisma.job.findUnique({
+            where: { id: parseInt(jobId) },
+            include: {
+                client: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        user_type: true
+                    }
+                },
+                awarded_admin: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                awarded_freelancer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                form_submission: {
+                    include: formSelectFields
+                },
+                conversations: {
+                    include: {
+                        admin: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true
+                            }
+                        },
+                        freelancer: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true
+                            }
+                        },
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true
+                            }
+                        }
+                    }
+                },
+                offers: true
+            }
+        });
+
+        if (!job) {
+            return res.failure("Job not found", null, 404);
+        }
+
+        // Process form details
+        let formDetails: any = null;
+        if (job.form_submission) {
+            switch (job.form_submission.form_type) {
+                case 'SOL':
+                    formDetails = job.form_submission.solution_implementation;
+                    break;
+                case 'API':
+                    formDetails = job.form_submission.api_integration;
+                    break;
+                case 'EXP':
+                    formDetails = job.form_submission.hire_smartsheet_expert;
+                    break;
+                case 'ADM':
+                    formDetails = job.form_submission.system_admin_support;
+                    break;
+                case 'ADH':
+                    formDetails = job.form_submission.adhoc_request;
+                    break;
+                case 'PRM':
+                    formDetails = job.form_submission.premium_app_support;
+                    break;
+                case 'ONE':
+                    formDetails = job.form_submission.book_one_on_one;
+                    break;
+                case 'PMO':
+                    formDetails = job.form_submission.pmo_control_center;
+                    break;
+                case 'LIR':
+                    formDetails = job.form_submission.license_request;
+                    break;
+            }
+        }
+
+        // Calculate stats
+        const freelancersWithActiveConversation = job.conversations.filter(conv => 
+            conv.conversation_type === 'freelancer' && conv.freelancer_id
+        ).length;
+
+        const adminsWithActiveConversation = job.conversations.filter(conv => 
+            conv.conversation_type === 'admin' && conv.admin_id
+        ).length;
+
+        const totalOffers = job.offers.length;
+
+        // Get offer details with participant info
+        const offersWithParticipants = await prisma.offer.findMany({
+            where: { job_id: parseInt(jobId) },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        user_type: true
+                    }
+                }
+            }
+        });
+
+        // Prepare participants data for table
+        const participants = [];
+        
+        // Group offers by participant (users who made offers)
+        const offersByParticipant = new Map();
+        
+        offersWithParticipants.forEach(offer => {
+            const participantKey = `user_${offer.user_id}`;
+            const participantData = {
+                id: offer.user_id,
+                name: offer.user?.name || 'Unknown User',
+                user_type: offer.user?.user_type || 'user',
+                email: offer.user?.email
+            };
+            
+            if (!offersByParticipant.has(participantKey)) {
+                offersByParticipant.set(participantKey, {
+                    ...participantData,
+                    offers_count: 0
+                });
+            }
+            offersByParticipant.get(participantKey).offers_count++;
+        });
+
+        // Convert to array
+        participants.push(...Array.from(offersByParticipant.values()));
+
+        // Add conversation participants who haven't made offers
+        job.conversations.forEach(conv => {
+            if (conv.admin_id) {
+                const key = `admin_${conv.admin_id}`;
+                if (!Array.from(offersByParticipant.keys()).includes(key)) {
+                    participants.push({
+                        id: conv.admin_id,
+                        name: conv.admin?.name || 'Unknown Admin',
+                        user_type: 'admin',
+                        email: conv.admin?.email,
+                        offers_count: 0
+                    });
+                }
+            } else if (conv.freelancer_id) {
+                const key = `freelancer_${conv.freelancer_id}`;
+                if (!Array.from(offersByParticipant.keys()).includes(key)) {
+                    participants.push({
+                        id: conv.freelancer_id,
+                        name: conv.freelancer?.name || 'Unknown Freelancer',
+                        user_type: 'freelancer',
+                        email: conv.freelancer?.email,
+                        offers_count: 0
+                    });
+                }
+            }
+        });
+
+        // Process job data
+        const processedJob = {
+            ...job,
+            form_submission: job.form_submission ? {
+                ...job.form_submission,
+                form_name: getFormName(job.form_submission.form_type),
+                form_title: formDetails ? formDetails[getFormTitleKey(job.form_submission.form_type)] || null : null,
+                form_description: formDetails ? formDetails[getFormDescriptionKey(job.form_submission.form_type)] || null : null,
+                details: formDetails
+            } : null
+        };
+
+        res.success("Job details fetched successfully", {
+            job: processedJob,
+            stats: {
+                freelancersWithActiveConversation,
+                adminsWithActiveConversation,
+                totalOffers
+            },
+            participants
+        }, 200);
+    } catch (error) {
+        console.log(error);
+        res.failure("Failed to fetch job details", error, 500);
+    }
+}
+
 export const getAllUsers = async (req: Request, res: CustomResponse) => {
     try {
         const { user_type, user_id } = req.query;
@@ -484,8 +878,8 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
                 form_id: submission.id,
                 form_type: submission.form_type,
                 form_name: getFormName(submission.form_type),
-                form_title: details[getFormTitleKey(submission.form_type)] || null,
-                form_description: details[getFormDescriptionKey(submission.form_type)] || null,
+                form_title: details ? details[getFormTitleKey(submission.form_type)] || null : null,
+                form_description: details ? details[getFormDescriptionKey(submission.form_type)] || null : null,
                 job_id: submission.job?.id || null,
                 conversations: submission.job?.conversations || []
             };
@@ -497,27 +891,35 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
         }, 200);
 
     } catch (error) {
+        console.log(error);
         res.failure("Failed to fetch user details", error, 500);
     }
 }
 
-export const createConverstaion = async (req: Request, res: CustomResponse) => {
+export const createConversation = async (req: Request, res: CustomResponse) => {
     try {
-        const adminId = (req as any).user.id;
-        const { userId, jobId, conversationType } = req.body;
+        const { id, userType } = (req as any).user;
+        const { userId, jobId } = req.body;
 
-        // Validate conversation type
-        if (!['admin', 'freelancer'].includes(conversationType)) {
-            return res.failure("Invalid conversation type. Must be 'admin' or 'freelancer'", null, 400);
+        let convoType = {};
+        if (userType === "admin") {
+            convoType = {
+                conversation_type: ConversationType.admin,
+                admin_id: id
+            }
+        } else if (userType === "freelancer") {
+            convoType = {
+                conversation_type: ConversationType.freelancer,
+                freelancer_id: id
+            }
         }
-
+        
         // Check if conversation already exists for this job
         const existingConversation = await prisma.conversation.findFirst({
             where: {
                 user_id: userId,
                 job_id: jobId,
-                conversation_type: conversationType,
-                ...(conversationType === 'admin' ? { admin_id: adminId } : {})
+                ...convoType
             }
         });
 
@@ -529,35 +931,14 @@ export const createConverstaion = async (req: Request, res: CustomResponse) => {
         const conversationData: any = {
             user_id: userId,
             job_id: jobId,
-            conversation_type: conversationType,
+            ...convoType
         };
-
-        if (conversationType === 'admin') {
-            conversationData.admin_id = adminId;
-        }
-        // Note: freelancer_id would be set when freelancer creates/accepts the conversation
 
         const conversation = await prisma.conversation.create({
             data: conversationData,
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true
-                    }
-                },
-                job: {
-                    select: {
-                        id: true,
-                        job_type: true,
-                        client_id: true
-                    }
-                }
-            }
         });
 
-        res.success("Chat session created successfully", conversation, 200);
+        res.success("Chat session created successfully", {}, 200);
 
     } catch (error) {
         res.failure("Failed to create chat session", error, 500);

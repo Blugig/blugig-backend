@@ -74,6 +74,7 @@ export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
 
 export const getFormDetails = async (req: Request, res: CustomResponse) => {
     try {
+        const { id } = (req as any).user; 
         const { formId, formType } = req.body;
 
         const validFormTypes = ['SOL', 'API', 'EXP', 'ADM', 'ADH', 'PRM', 'ONE', 'PMO', 'LIR'];
@@ -104,9 +105,28 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
                         email: true,
                         phone: true
                     }
+                },
+                job: {
+                    select: {
+                        id: true,
+                    }
                 }
             }
         });
+
+        // checking in form details so only internal admin can do that
+        const conversation = await prisma.conversation.findUnique({
+            where: {
+                user_id_admin_id_job_id: {
+                    user_id: formSubmission.user_id,
+                    admin_id: +id,
+                    job_id: formSubmission.job.id,
+                }
+            },
+            include: {
+                messages: true
+            }
+        })
 
         if (!formSubmission) {
             return res.failure("Form not found", { formId }, 404);
@@ -139,12 +159,13 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
         } = formSubmission;
 
         const user = (req as any).user;
-        const tempToken = generateAccessToken(user.id, user.userType, "3h");
+        const tempToken = generateAccessToken(user.id, user.userType, "5h");
 
         return res.success("Form details fetched successfully", {
             ...base,
             session: tempToken,
-            details
+            details,
+            conversation
         }, 200);
     } catch (error) {
         res.failure("Failed to fetch form details", { error: error.message }, 500);
@@ -156,10 +177,8 @@ export const createOffer = async (req: Request, res: CustomResponse) => {
         const { 
             name, description, timeline, 
             budget, type, user_id,
-            estimated_hours, total_cost, deliverables 
+            estimated_hours, total_cost, deliverables, jobId
         } = req.body;
-
-        let strDeliverables = deliverables.join(",");
 
         const offer = await prisma.offer.create({
             data: {
@@ -170,9 +189,10 @@ export const createOffer = async (req: Request, res: CustomResponse) => {
                 budget,
                 estimated_hours: estimated_hours,
                 total_cost: total_cost ? parseInt(total_cost) : null,
-                deliverables: strDeliverables,
+                deliverables,
                 user_id: parseInt(user_id) as number,
-                status: 'pending'
+                status: 'pending',
+                job_id: parseInt(jobId) as number
             }
         });
 

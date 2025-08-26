@@ -24,6 +24,7 @@ adminRouter.get('/get-user-details/:id', authenticate, adminController.getUserDe
 adminRouter.get('/get-freelancers', authenticate, adminController.getFreelancers);
 adminRouter.get('/get-freelancer-details/:id', authenticate, adminController.getFreelancerDetails);
 adminRouter.get('/get-jobs', authenticate, adminController.getAllJobs);
+adminRouter.get('/get-job-details/:id', authenticate, adminController.getJobDetails);
 
 adminRouter.post('/file-upload', authenticate, upload.single('file'), uploadFile);
 
@@ -45,7 +46,7 @@ adminRouter.post('/get-form-details', authenticate, adminFormController.getFormD
 adminRouter.post('/create-offer', authenticate, adminFormController.createOffer);
 
 // Dashboard Conversation Routes
-adminRouter.post('/conversations/create', authenticate, adminController.createConverstaion);
+adminRouter.post('/conversations/create', authenticate, adminController.createConversation);
 adminRouter.get('/conversations', authenticate, adminController.getAllConversations);
 
 export default adminRouter;

@@ -17,7 +17,7 @@ model Conversation {
     freelancer    Freelancer? @relation("FreelancerConversation", fields: [freelancer_id], references: [id])
 
     // conversation always for a job
-    job_id Int? @unique
+    job_id Int?
     job    Job? @relation("JobConversation", fields: [job_id], references: [id], onDelete: Cascade)
 
     messages Message[]

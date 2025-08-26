@@ -95,7 +95,6 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
     try {
         const { name, email, permissions, is_super_admin } = req.body;
 
-        const perms = permissions.join(',');
         const plainPassword = Math.random().toString(36).slice(-8);
         const password = await bcrypt.hash(plainPassword, 14);
 
@@ -112,7 +111,7 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
                 name,
                 email,
                 password,
-                permissions: perms,
+                permissions,
                 is_super_admin: is_super_admin ? true : false,
                 is_active: true,
             },

@@ -87,7 +87,6 @@ export const markMessagesAsSeen = async (
                     id: true,
                 },
             });
-            console.log(latestOpponentMessage);
 
             if (latestOpponentMessage) {
                 currentLastSeenMessageId = latestOpponentMessage.id;
