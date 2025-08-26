@@ -4,7 +4,7 @@ import CustomResponse from '../../utils/customResponse';
 import { createPaginatedResponse, getPagination } from '../../utils/queryHelpers';
 import { AwardedUserType, JobType } from '@prisma/client';
 import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../../utils/misc';
-import { generateAccessToken } from '@/utils/sendMail';
+import { generateAccessToken } from '../../utils/sendMail';
 
 
 
