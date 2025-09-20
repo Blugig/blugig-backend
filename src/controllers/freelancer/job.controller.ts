@@ -7,7 +7,6 @@ import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../../utils
 import { generateAccessToken } from '../../utils/sendMail';
 
 
-
 export const getAllJobs = async (req: Request, res: CustomResponse) => {
     try {
         const { page, take, skip } = getPagination(req);
@@ -486,3 +485,38 @@ export const getPendingJobs = async (req: Request, res: CustomResponse) => {
         res.failure("Failed to fetch jobs", error, 500);
     }
 }
+
+export const updateJobProgress = async (req: Request, res: CustomResponse) => {
+    try {
+        const { id: freelancerId } = (req as any).user;
+        const { jobId, progress } = req.body;
+
+        if (!jobId || isNaN(jobId)) {
+            return res.failure("Invalid job ID", null, 400);
+        }
+
+        if (progress === undefined || isNaN(progress) || progress < 0 || progress > 100) {
+            return res.failure("Progress must be a number between 0 and 100", null, 400);
+        }
+
+        // Verify that the job exists and is awarded to this freelancer
+        const job = await prisma.job.findUnique({
+            where: { id: +jobId }
+        });
+
+        if (!job || job.awarded_freelancer_id !== freelancerId) {
+            return res.failure("Job not found or not awarded to this freelancer", null, 404);
+        }
+
+        // Update the job progress
+        const updatedJob = await prisma.job.update({
+            where: { id: +jobId },
+            data: { progress }
+        });
+
+        res.success("Job progress updated successfully", updatedJob, 200);
+    } catch (error) {
+        console.log(error);
+        res.failure("Failed to update job progress", error, 500);
+    }
+};

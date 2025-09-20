@@ -17,6 +17,8 @@ freelancerRouter.post('/job-details', authenticate, jobController.getJobDetails)
 freelancerRouter.get('/jobs/awarded', authenticate, jobController.getAwardedJobs);
 freelancerRouter.get('/jobs/pending', authenticate, jobController.getPendingJobs);
 
+freelancerRouter.post('/update-job-progress', authenticate, jobController.updateJobProgress);
+
 // Conversation Routes
 freelancerRouter.post('/conversations/create', authenticate, adminController.createConversation);
 

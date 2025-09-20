@@ -36,6 +36,7 @@ model Job {
     id                 Int @id @default(autoincrement())
     form_submission_id Int @unique // Auto-created for every form submission
     client_id          Int // User who posted the job
+    progress           Int @default(0) // Job progress percentage (0-100)
 
     // Award Details
     awarded_admin_id      Int? // ID of admin who got the job
