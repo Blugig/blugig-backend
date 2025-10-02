@@ -140,6 +140,13 @@ export const getJobDetails = async (req: Request, res: CustomResponse) => {
                         pmo_control_center: true,
                         license_request: true,
                     }
+                },
+                awarded_freelancer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
                 }
             }
         });
@@ -185,44 +192,34 @@ export const getJobDetails = async (req: Request, res: CustomResponse) => {
         // Process form submission data like in form details
         const formSubmission = job.form_submission;
         let details = {};
-        let formType = '';
 
         if (formSubmission) {
             // Determine form type and extract details
             if (formSubmission.solution_implementation) {
-                formType = 'solution_implementation';
                 const { id, form_submission_id, ...rest } = formSubmission.solution_implementation;
                 details = rest;
             } else if (formSubmission.api_integration) {
-                formType = 'api_integration';
                 const { id, form_submission_id, ...rest } = formSubmission.api_integration;
                 details = rest;
             } else if (formSubmission.hire_smartsheet_expert) {
-                formType = 'hire_smartsheet_expert';
                 const { id, form_submission_id, ...rest } = formSubmission.hire_smartsheet_expert;
                 details = rest;
             } else if (formSubmission.system_admin_support) {
-                formType = 'system_admin_support';
                 const { id, form_submission_id, ...rest } = formSubmission.system_admin_support;
                 details = rest;
             } else if (formSubmission.adhoc_request) {
-                formType = 'adhoc_request';
                 const { id, form_submission_id, ...rest } = formSubmission.adhoc_request;
                 details = rest;
             } else if (formSubmission.premium_app_support) {
-                formType = 'premium_app_support';
                 const { id, form_submission_id, ...rest } = formSubmission.premium_app_support;
                 details = rest;
             } else if (formSubmission.book_one_on_one) {
-                formType = 'book_one_on_one';
                 const { id, form_submission_id, ...rest } = formSubmission.book_one_on_one;
                 details = rest;
             } else if (formSubmission.pmo_control_center) {
-                formType = 'pmo_control_center';
                 const { id, form_submission_id, ...rest } = formSubmission.pmo_control_center;
                 details = rest;
             } else if (formSubmission.license_request) {
-                formType = 'license_request';
                 const { id, form_submission_id, ...rest } = formSubmission.license_request;
                 details = rest;
             }
@@ -239,9 +236,11 @@ export const getJobDetails = async (req: Request, res: CustomResponse) => {
                 job_type: job.job_type,
                 created_at: job.created_at,
                 updated_at: job.updated_at,
+                progress: job.progress,
                 ...(job.job_type === JobType.awarded && {
                     awarded_at: job.awarded_at,
-                    awarded_to_user_type: job.awarded_to_user_type
+                    awarded_to_user_type: job.awarded_to_user_type,
+                    awarded_freelancer: job.awarded_freelancer,
                 })
             },
             client: job.client,
@@ -508,11 +507,22 @@ export const updateJobProgress = async (req: Request, res: CustomResponse) => {
             return res.failure("Job not found or not awarded to this freelancer", null, 404);
         }
 
+        if (job.progress === 100) {
+            return res.failure("Job is already completed. Progress cannot be updated.", null, 400);
+        }
+
         // Update the job progress
         const updatedJob = await prisma.job.update({
             where: { id: +jobId },
             data: { progress }
         });
+
+        if (progress === 100) {
+            await prisma.formSubmission.update({
+                where: { id: job.form_submission_id },
+                data: { status: 'completed' }
+            });
+        }
 
         res.success("Job progress updated successfully", updatedJob, 200);
     } catch (error) {

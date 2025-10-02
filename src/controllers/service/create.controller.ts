@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import { generateFileUrl } from '../../lib/fileUpload';
-import { Prisma } from '@prisma/client';
+import { AwardedUserType, JobType, Prisma } from '@prisma/client';
 
 interface AuthenticatedRequest extends Request {
     user?: {
@@ -19,7 +19,7 @@ export const createReview = async (req: Request, res: CustomResponse) => {
 
         const { id } = (req as any).user;
         const {
-            jobId,
+            formId,
             review,
             communication,
             quality_of_work,
@@ -27,9 +27,16 @@ export const createReview = async (req: Request, res: CustomResponse) => {
             value_for_money
         } = req.body;
 
+        const form = await prisma.formSubmission.findUnique({
+            where: { id: +formId },
+            include: {
+                job: { select: { id: true } }
+            },
+        });
+
         const existingReview = await prisma.review.findFirst({
             where: {
-                job_id: +jobId,
+                job_id: form.job.id,
                 user_id: +id,
             }
         });
@@ -40,7 +47,7 @@ export const createReview = async (req: Request, res: CustomResponse) => {
 
         const newReview = await prisma.review.create({
             data: {
-                job_id: +jobId,
+                job_id: form.job.id,
                 user_id: +id,
                 review,
                 communication,
@@ -197,14 +204,12 @@ export const createCancellation = async (req: AuthenticatedRequest, res: CustomR
         let isRefundEligible = false;
         let refundAmount: number | null = null;
 
-        // Criteria: cancelling within 7 days of creating that form submission
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        // Criteria: if status completed no refund
-        const isNotCompleted = formSubmission.status !== 'completed';
-
-        // TOOD: Fix
+        
+        // TODO: PENDING REFUND
+        // const refundNotEligibleStatuses = ['submitted', 'offer_pending', 'inprogress'];
+        // if (!refundNotEligibleStatuses.includes(formSubmission.status)) {
+        //     isRefundEligible = true;
+        // }
         // if (formSubmission.created_at >= sevenDaysAgo && isNotCompleted) {
         //     isRefundEligible = true;
         //     // Only base amount is refundable
@@ -286,10 +291,10 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
         if (!req?.user || !req?.user.id) {
             return res.failure('Unauthorized: User not found in request.', null, 401);
         }
-
+        
         const uid = req?.user.id;
         const { offerId, formId } = req.body;
-
+        
         const parsedOfferId = parseInt(offerId as string);
         const parsedFormSubmissionId = parseInt(formId as string);
 
@@ -297,6 +302,12 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
             where: { id: parsedOfferId },
             include: {
                 user: true,
+                Message: {
+                    select: {
+                        sender_admin_id: true,
+                        sender_freelancer_id: true,
+                    }
+                }
             }
         });
 
@@ -411,6 +422,25 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
         await prisma.formSubmission.update({
             where: { id: parsedFormSubmissionId },
             data: { status: 'inprogress', payment_status: 'paid' },
+        });
+        
+        // also mark awarded to user for the offer for the job
+        const msg = offer.Message[0];
+        const awardedTo = {
+            awarded_at: new Date().toISOString(),
+            job_type: JobType.awarded
+        };
+
+        if (msg.sender_admin_id) {
+            awardedTo['awarded_admin_id'] = msg.sender_admin_id;
+            awardedTo['awarded_to_user_type'] = AwardedUserType.admin;
+        } else if (msg.sender_freelancer_id) {
+            awardedTo['awarded_freelancer_id'] = msg.sender_freelancer_id;
+            awardedTo['awarded_to_user_type'] = AwardedUserType.freelancer;
+        }
+        await prisma.job.update({
+            where: { form_submission_id: parsedFormSubmissionId },
+            data: awardedTo,
         });
 
         // 8. Return necessary details to the client

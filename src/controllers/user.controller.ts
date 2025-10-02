@@ -287,11 +287,21 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
 
         // TODO: fix history retrieval logic
         const formSubmissions = await prisma.formSubmission.findMany({
-            where: { user_id: parseInt(id) },
+            where: { user_id: parseInt(id), job: { isNot: null } },
             orderBy: { created_at: 'desc' },
             include: {
                 ...formSelectFields,
                 reports: true,
+                job: {
+                    select: {
+                        id: true,
+                        offers: {
+                            select: { id: true, status: true, payment: true }
+                        },
+                        progress: true,
+                        review: true
+                    }
+                }
             }
         });
 
@@ -327,26 +337,43 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
                     break;
             }
 
-            return {
+            const ftype = submission.form_type;
+
+            const data = {
                 form_id: submission.id,
-                form_type: submission.form_type,
+                form_type: ftype,
                 status: submission.status,
-                form_name: getFormName(submission.form_type),
-                form_title: details[getFormTitleKey(submission.form_type)] || null,
-                form_description: details[getFormDescriptionKey(submission.form_type)] || null,
+                form_name: getFormName(ftype),
+                form_title: details[getFormTitleKey(ftype)],
+                form_description: details[getFormDescriptionKey(ftype)] || null,
                 created_at: submission.created_at,
 
-                // payment: submission.payment,
-                // review: submission.review,
                 reports: submission.reports,
-                
-                // conversation_uuid: submission.conversation?.id || null,
             };
+            const acceptedOff = submission.job.offers.find((off: any) => off.status === 'accepted');
+
+            switch (submission.status) {
+                case 'offer_pending':
+                    data['offer_count'] = submission.job.offers.length;
+                    break;
+                case 'inprogress': // fetch payment from offer accepted - tras bc 
+                    data['progress'] = submission.job.progress;
+                    data['payment'] = acceptedOff ? acceptedOff.payment : null;
+                    break;
+                case 'completed':
+                    data['progress'] = submission.job.progress;
+                    data['review'] = submission.job.review;
+                    data['payment'] = acceptedOff ? acceptedOff.payment : null;
+                    break;
+            }
+
+            return data;
         });
 
         return res.success('Form history retrieved successfully', history);
 
     } catch (error) {
+        console.error(error);
         res.failure("Failed to fetch history", error, 500);
     }
 }
@@ -356,7 +383,11 @@ export const updateUser = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = (req as any).user;
 
-        const ALLOWED_FIELDS = ['name', 'profile_photo', 'email', 'phone', 'company_name', 'certificate_link', 'domain_expertise'];
+        const ALLOWED_FIELDS = [
+            'name', 'profile_photo', 'email', 'phone', 'company_name',
+            'certificate_link', 'domain_expertise', 'job_title',
+            'industry', 'company_size', 'website'
+        ];
 
         // Check if any field other than allowed fields is being updated
         const invalidFields = Object.keys(req.body).filter(field => !ALLOWED_FIELDS.includes(field));

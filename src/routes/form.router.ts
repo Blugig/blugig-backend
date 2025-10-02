@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/authenticate';
 
 const formRouter: any = express.Router();
 
-formRouter.get(
+formRouter.post(
     '/chat-list',
     authenticate,
     FormController.getChatList

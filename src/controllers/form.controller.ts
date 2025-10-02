@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { prisma } from '../lib/prisma';
 import CustomResponse from '../utils/customResponse';
 import { Prisma } from '@prisma/client';
-import { formSelectFields } from '../lib/serializers/form';
+import { formSelectFields, serializeConversationMessages } from '../lib/serializers/form';
 
 class FormController {
     async createForm(req: Request, res: CustomResponse) {
@@ -441,57 +441,39 @@ class FormController {
 
     async getFormMessages(req: Request, res: CustomResponse) {
         try {
-            const { jobId } = req.body;
+            // seedha conversation id dede 
+            const { cid } = req.body;
 
-            if (isNaN(jobId)) {
-                return res.failure('Invalid form ID', { id: jobId }, 400);
+            if (!cid) {
+                return res.failure('Invalid conversation ID', { id: cid }, 400);
             }
 
-            // TODO: fix the entire logic now
-            // const formSubmission = await prisma.job.findUnique({
-            //     where: { id: +jobId },
-            //     include: {
-            //         // ...formSelectFields,
-            //         conversation: {
-            //             select: {
-            //                 id: true,
-            //                 user_id: true,
-            //                 admin: {
-            //                     select: {
-            //                         id: true,
-            //                         name: true,
-            //                         profile_photo: true,
-            //                     }
-            //                 },
-            //                 messages: {
-            //                     include: {
-            //                         offer: {
-            //                             select: {
-            //                                 id: true,
-            //                                 status: true,
-            //                                 type: true,
-            //                                 budget: true,
-            //                                 description: true,
-            //                                 timeline: true,
-            //                                 name: true,
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // });
+            const convo = await prisma.conversation.findUnique({
+                where: { id: cid },
+                include: {
+                    job: {
+                        select: {
+                            form_submission_id: true
+                        }
+                    },
+                    messages: {
+                        include: {
+                            offer: true
+                        },
+                        orderBy: {
+                            time: 'asc'
+                        }
+                    }
+                }
+            });
 
-            // if (!formSubmission) {
-            //     return res.failure("Form not found", { formId }, 404);
-            // }
+            if (!convo) {
+                return res.failure('Conversation not found', { cid }, 404);
+            }
 
-            // if (formSubmission.user_id !== (req as any).user.id) {
-            //     return res.failure('Unauthorized to access this form', {}, 403);
-            // }
+            const serializedResponse = serializeConversationMessages(convo);
 
-            return res.success("Form messages fetched successfully", {});
+            return res.success("Form messages fetched successfully", serializedResponse);
 
         } catch (error) {
             console.error('Error fetching form messages:', error);
@@ -503,13 +485,38 @@ class FormController {
         try {
             const userId = (req as any).user.id;
 
+            let conditions;
+
+            if (isNaN(req.body?.formId)) {
+                conditions = { 
+                    user_id: userId,
+                    job: {
+                        offers: {
+                            some: {
+                                status: 'accepted',
+                                user_id: userId
+                            }
+                        }
+                    }
+                }; // accepted offers only
+            } else {
+                conditions = { user_id: userId, job: { form_submission_id: req.body.formId } }; // get the convos for that form
+            }
+
             const conversations = await prisma.conversation.findMany({
-                where: { user_id: userId },
+                where: conditions,
                 orderBy: {
                     updated_at: 'desc'
                 },
                 include: {
                     admin: {
+                        select: {
+                            id: true,
+                            name: true,
+                            profile_photo: true,
+                        }
+                    },
+                    freelancer: {
                         select: {
                             id: true,
                             name: true,
@@ -526,7 +533,6 @@ class FormController {
                     },
                 }
             });
-
 
             return res.success('Chat list fetched successfully', conversations);
 

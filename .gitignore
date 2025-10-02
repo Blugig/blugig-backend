@@ -8,6 +8,7 @@ prisma/schema/dev.db
 
 # Env files
 .env
+request.http
 
 # Build outputs
 dist/

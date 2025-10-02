@@ -13,6 +13,22 @@ export function getFormName(formType: string): string {
     }
 }
 
+export function isArrayField(formType: string, fieldKey: string): boolean {
+    const arrayFields = {
+        'SOL': ['departments_involved', 'implementation_features'],
+        'API': ['technical_requirements', 'integration_features'],
+        'EXP': ['required_skills'],
+        'ADM': ['admin_task_needed'],
+        'ADH': ['need_help_with'],
+        'PRM': ['premium_addons'],
+        'ONE': [],
+        'PMO': ['required_features'],
+        'LIR': []
+    };
+    
+    return arrayFields[formType]?.includes(fieldKey) || false;
+}
+
 export function getFormDescriptionKey(formType: string): string {
     switch (formType) {
         case 'SOL': return 'requirements';
@@ -24,7 +40,7 @@ export function getFormDescriptionKey(formType: string): string {
         case 'ONE': return 'consultation_focus';
         case 'PMO': return 'required_features';
         case 'LIR': return 'project_needs';
-        default: return 'null';
+        default: return null;
     }
 }
 
@@ -39,7 +55,7 @@ export function getFormTitleKey(formType: string): string {
         case 'ONE': return 'consultation_focus';
         case 'PMO': return 'organization_name';
         case 'LIR': return 'company_name';
-        default: return 'null';
+        default: return null;
     }
 }
 
