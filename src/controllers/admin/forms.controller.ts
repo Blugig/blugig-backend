@@ -177,7 +177,7 @@ export const createOffer = async (req: Request, res: CustomResponse) => {
         const { 
             name, description, timeline, 
             budget, type, user_id,
-            estimated_hours, total_cost, deliverables, jobId
+            estimated_hours, total_cost, deliverables, job_id
         } = req.body;
 
         const offer = await prisma.offer.create({
@@ -192,7 +192,7 @@ export const createOffer = async (req: Request, res: CustomResponse) => {
                 deliverables,
                 user_id: parseInt(user_id) as number,
                 status: 'pending',
-                job_id: parseInt(jobId) as number
+                job_id: parseInt(job_id) as number
             }
         });
 
