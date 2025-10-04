@@ -335,21 +335,20 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
             return res.failure("Form Submission does not belong to the authenticated user.", null, 403);
         }
 
-        // TODO: Fix 
-        // const existingPayment = await prisma.payment.findUnique({
-        //     where: {
-        //         user_id_form_submission_id_offer_id: {
-        //             user_id: uid,
-        //             form_submission_id: parsedFormSubmissionId,
-        //             offer_id: parsedOfferId,
-        //         },
-        //     },
-        // });
+        // Check for existing payment
+        const existingPayment = await prisma.payment.findUnique({
+            where: {
+                user_id_offer_id: {
+                    user_id: uid,
+                    offer_id: parsedOfferId,
+                },
+            },
+        });
 
-        // if (existingPayment) {
-        //     // If a payment already exists, return its details or an error indicating it's already paid
-        //     return res.failure("Payment for this offer and form submission already exists.", existingPayment, 400);
-        // }
+        if (existingPayment) {
+            // If a payment already exists, return its details or an error indicating it's already paid
+            return res.failure("Payment for this offer and form submission already exists.", existingPayment, 400);
+        }
 
         // 4. Calculate amounts based on the offer budget and defined rates
         const baseAmount = new Prisma.Decimal(offer.budget);
@@ -413,37 +412,7 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
             }
         });
 
-        // 7. Update Offer status to 'accepted' / update formSubmission status 
-        await prisma.offer.update({
-            where: { id: parsedOfferId },
-            data: { status: 'accepted' },
-        });
-
-        await prisma.formSubmission.update({
-            where: { id: parsedFormSubmissionId },
-            data: { status: 'inprogress', payment_status: 'paid' },
-        });
-        
-        // also mark awarded to user for the offer for the job
-        const msg = offer.Message[0];
-        const awardedTo = {
-            awarded_at: new Date().toISOString(),
-            job_type: JobType.awarded
-        };
-
-        if (msg.sender_admin_id) {
-            awardedTo['awarded_admin_id'] = msg.sender_admin_id;
-            awardedTo['awarded_to_user_type'] = AwardedUserType.admin;
-        } else if (msg.sender_freelancer_id) {
-            awardedTo['awarded_freelancer_id'] = msg.sender_freelancer_id;
-            awardedTo['awarded_to_user_type'] = AwardedUserType.freelancer;
-        }
-        await prisma.job.update({
-            where: { form_submission_id: parsedFormSubmissionId },
-            data: awardedTo,
-        });
-
-        // 8. Return necessary details to the client
+        // 7. Return necessary details to the client
         return res.success("Created Payment Intent and recorded payment.", {
             paymentIntent: paymentIntent.client_secret,
             ephemeralKey: ephemeralKey.secret,

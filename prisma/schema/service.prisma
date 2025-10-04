@@ -122,10 +122,10 @@ model Payment {
     total_amount        Decimal // Final total
     currency            String
 
-    user_id Int  @unique
+    user_id Int
     user    User @relation(fields: [user_id], references: [id])
 
-    offer_id Int   @unique
+    offer_id Int @unique
     offer    Offer @relation(fields: [offer_id], references: [id])
 
     created_at DateTime @default(now())

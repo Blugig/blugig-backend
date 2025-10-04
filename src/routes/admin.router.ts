@@ -39,6 +39,7 @@ adminRouter.get('/get-admin-details/:email', authenticate, adminCRUDController.g
 adminRouter.post('/create-admin', authenticate, adminCRUDController.addAdmin);
 adminRouter.post('/delete-admin', authenticate, adminCRUDController.deleteAdmin);
 adminRouter.post('/update-admin', authenticate, upload.single('profile_photo'), adminCRUDController.updateAdmin);
+adminRouter.post('/update-admin-perms', authenticate, adminCRUDController.updateAdminPerms);
 
 // Dashboard Form Routes
 adminRouter.get('/get-all-forms/:formType', authenticate, adminFormController.getAllFormsOfType);

@@ -8,6 +8,7 @@ import { basicUserFields } from '../lib/serializers/user';
 import { generateFileUrl } from '../lib/fileUpload';
 import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
 import { formSelectFields } from '../lib/serializers/form';
+import { AwardedUserType, JobType } from '@prisma/client';
 
 interface AuthenticatedRequest extends Request {
     user?: {
@@ -285,7 +286,6 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
     try {
         const { id } = (req as any).user;
 
-        // TODO: fix history retrieval logic
         const formSubmissions = await prisma.formSubmission.findMany({
             where: { user_id: parseInt(id), job: { isNot: null } },
             orderBy: { created_at: 'desc' },
@@ -299,7 +299,24 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
                             select: { id: true, status: true, payment: true }
                         },
                         progress: true,
-                        review: true
+                        review: true,
+                        conversations: {
+                            select: {
+                                id: true,
+                                messages: {
+                                    where: {
+                                        message_type: 'OFFER',
+                                        offer: {
+                                            status: 'accepted'
+                                        }
+                                    },
+                                    select: {
+                                        offer_id: true
+                                    },
+                                    take: 1
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -352,6 +369,14 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
             };
             const acceptedOff = submission.job.offers.find((off: any) => off.status === 'accepted');
 
+            // Find conversation where the accepted offer was sent (optimized)
+            let conversationWithAcceptedOffer = null;
+            if (acceptedOff) {
+                conversationWithAcceptedOffer = submission.job.conversations.find((conv: any) =>
+                    conv.messages.length > 0 && conv.messages[0].offer_id === acceptedOff.id
+                );
+            }
+
             switch (submission.status) {
                 case 'offer_pending':
                     data['offer_count'] = submission.job.offers.length;
@@ -359,11 +384,13 @@ export const getHistory = async (req: Request, res: CustomResponse) => {
                 case 'inprogress': // fetch payment from offer accepted - tras bc 
                     data['progress'] = submission.job.progress;
                     data['payment'] = acceptedOff ? acceptedOff.payment : null;
+                    data['conversation_id'] = conversationWithAcceptedOffer ? conversationWithAcceptedOffer.id : null;
                     break;
                 case 'completed':
                     data['progress'] = submission.job.progress;
                     data['review'] = submission.job.review;
                     data['payment'] = acceptedOff ? acceptedOff.payment : null;
+                    data['conversation_id'] = conversationWithAcceptedOffer ? conversationWithAcceptedOffer.id : null;
                     break;
             }
 
@@ -460,7 +487,9 @@ export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
         const offer = await prisma.offer.findUnique({
             where: { id: offer_id },
             include: {
-                user: true
+                user: true,
+                job: true,
+                Message: true
             }
         });
 
@@ -476,10 +505,52 @@ export const acceptRejectOffer = async (req: Request, res: CustomResponse) => {
             return res.failure("Offer has already been accepted or rejected", null, 400);
         }
 
-        await prisma.offer.update({
-            where: { id: offer_id },
-            data: { status }
-        });
+        if (status === 'accepted') {
+            // Reject all other offers for the same job
+            await prisma.offer.updateMany({
+                where: {
+                    job_id: offer.job_id,
+                    id: { not: offer_id },
+                    status: 'pending'
+                },
+                data: { status: 'rejected' }
+            });
+
+            // Update Offer status to 'accepted' / update formSubmission status 
+            await prisma.offer.update({
+                where: { id: offer_id },
+                data: { status: 'accepted' },
+            });
+            await prisma.formSubmission.update({
+                where: { id: offer.job.form_submission_id },
+                data: { status: 'inprogress', payment_status: 'paid' },
+            });
+
+            // also mark awarded to user for the offer for the job
+            const msg = offer.Message[0];
+            const awardedTo = {
+                awarded_at: new Date().toISOString(),
+                job_type: JobType.awarded
+            };
+
+            if (msg.sender_admin_id) {
+                awardedTo['awarded_admin_id'] = msg.sender_admin_id;
+                awardedTo['awarded_to_user_type'] = AwardedUserType.admin;
+            } else if (msg.sender_freelancer_id) {
+                awardedTo['awarded_freelancer_id'] = msg.sender_freelancer_id;
+                awardedTo['awarded_to_user_type'] = AwardedUserType.freelancer;
+            }
+            await prisma.job.update({
+                where: { id: offer.job_id },
+                data: awardedTo,
+            });
+        } else {
+            await prisma.offer.update({
+                where: { id: offer_id },
+                data: { status: 'rejected' }
+            });
+        }
+
 
         res.success("Offer accepted/rejected successfully", null, 200);
     } catch (error) {

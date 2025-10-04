@@ -126,6 +126,30 @@ export const addAdmin = async (req: Request, res: CustomResponse) => {
     }
 }
 
+export const updateAdminPerms = async (req: Request, res: CustomResponse) => {
+    try {
+        const { email, permissions } = req.body;
+        const id = (req as any).user.id;
+
+        const reqAdmin = await prisma.admin.findUnique({
+            where: { id: id },
+        });
+
+        if (!reqAdmin.is_super_admin) {
+            return res.failure("Only super admins can update permissions", null, 403);
+        }
+
+        const admin = await prisma.admin.update({
+            where: { email },
+            data: { permissions }
+        });
+
+        res.success("Admin permissions updated successfully", admin, 200);
+    } catch (error) {
+        res.failure("Failed to update admin permissions", error, 500);
+    }
+}
+
 export const updateAdmin = async (req: Request, res: CustomResponse) => {
     try {
         const { userType } = (req as any).user;
@@ -139,14 +163,14 @@ export const updateAdmin = async (req: Request, res: CustomResponse) => {
             if (invalidPermissions.length > 0) {
                 return res.failure(`Invalid permissions: ${invalidPermissions.join(', ')}`, null, 400);
             }
-
-            toUpdate.permissions = permissions.join(',');
         }
 
         if (req.file) {
             const url = generateFileUrl(req.file?.filename);
             toUpdate.profile_photo = url;
         }
+
+        console.log(userType, toUpdate, toUpdate.permissions);
 
         if (userType === 'freelancer') {
             await prisma.freelancer.update({

@@ -109,6 +109,11 @@ export const getFormDetails = async (req: Request, res: CustomResponse) => {
                 job: {
                     select: {
                         id: true,
+                        awarded_to_user_type: true,
+                        awarded_admin: {
+                            select: { id: true }
+                        },
+                        progress: true
                     }
                 }
             }
