@@ -24,7 +24,7 @@ userRouter.post('/delete-user', authenticate, userController.deleteUser);
 
 // User Service Routes
 userRouter.post('/create-review', authenticate, serviceController.createReview);
-userRouter.post('/create-report', authenticate, serviceController.createReport);
+userRouter.post('/create-report', authenticate, upload.single('attachment'), serviceController.createReport);
 userRouter.post('/create-cancellation', authenticate, serviceController.createCancellation);
 userRouter.post('/feedback', authenticate, upload.single('attachment'), serviceController.createFeedback);
 

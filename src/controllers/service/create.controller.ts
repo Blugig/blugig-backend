@@ -204,7 +204,7 @@ export const createCancellation = async (req: AuthenticatedRequest, res: CustomR
         let isRefundEligible = false;
         let refundAmount: number | null = null;
 
-        
+
         // TODO: PENDING REFUND
         // const refundNotEligibleStatuses = ['submitted', 'offer_pending', 'inprogress'];
         // if (!refundNotEligibleStatuses.includes(formSubmission.status)) {
@@ -291,10 +291,10 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
         if (!req?.user || !req?.user.id) {
             return res.failure('Unauthorized: User not found in request.', null, 401);
         }
-        
+
         const uid = req?.user.id;
         const { offerId, formId } = req.body;
-        
+
         const parsedOfferId = parseInt(offerId as string);
         const parsedFormSubmissionId = parseInt(formId as string);
 
@@ -347,7 +347,14 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
 
         if (existingPayment) {
             // If a payment already exists, return its details or an error indicating it's already paid
-            return res.failure("Payment for this offer and form submission already exists.", existingPayment, 400);
+            const data = {
+                paymentIntent: existingPayment.client_secret,
+                ephemeralKey: existingPayment.ephemeral_key_secret,
+                customer: existingPayment.customer_id,
+                publishableKey: process.env.STRIPE_PUBLIC_KEY,
+                paymentRecord: existingPayment,
+            }
+            return res.success("Payment for this offer and form submission already exists.", data, 200);
         }
 
         // 4. Calculate amounts based on the offer budget and defined rates
