@@ -35,7 +35,7 @@ model Cancellation {
     reason             String[]
     is_refund_eligible Boolean  @default(false)
 
-    user_id Int  @unique
+    user_id Int  
     user    User @relation(fields: [user_id], references: [id])
 
     form_submission_id Int            @unique
@@ -61,7 +61,7 @@ model Refund {
     amount Decimal
     status RefundStatus @default(received)
 
-    user_id Int  @unique
+    user_id Int  
     user    User @relation(fields: [user_id], references: [id])
 
     form_submission_id Int            @unique
