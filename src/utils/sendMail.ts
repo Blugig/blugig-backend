@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 
+const SMTP_PORT = 465;
+
 export const generateAccessToken = (uid: number | string, userType?: string, expiresIn?: string) => {
     return jwt.sign(
         { userId: uid, userType: userType || "" },
@@ -13,7 +15,7 @@ const sendVerificationEmail = async (email: string, name: string, otp: number) =
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: 465,
+            port: SMTP_PORT,
             secure: true,
             auth: {
                 user: process.env.SMTP_USER,
@@ -96,7 +98,7 @@ export const sendCredentialEmail = async (
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: 465,
+            port: SMTP_PORT,
             secure: true,
             auth: {
                 user: process.env.SMTP_USER,
