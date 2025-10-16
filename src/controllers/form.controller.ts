@@ -531,10 +531,28 @@ class FormController {
                             is_read: true,
                         }
                     },
+                    job: {
+                        select: {
+                            form_submission: {
+                                select: {
+                                    status: true
+                                }
+                            }
+                        }
+                    }
                 }
             });
 
-            return res.success('Chat list fetched successfully', conversations);
+            // Transform conversations to include only status
+            const conversationsWithStatus = conversations.map(conv => {
+                const { job, ...rest } = conv;
+                return {
+                    ...rest,
+                    status: job?.form_submission?.status || null
+                };
+            });
+
+            return res.success('Chat list fetched successfully', conversationsWithStatus);
 
         } catch (error) {
             console.error('Error fetching chat list:', error);
