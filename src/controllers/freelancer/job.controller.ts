@@ -247,6 +247,7 @@ export const getJobDetails = async (req: Request, res: CustomResponse) => {
             session: tempToken,
             details,
             formType: job.form_submission.form_type,
+            status: job.form_submission.status,
             formName: job.form_submission.form_type ? getFormName(job.form_submission.form_type) : 'Job Details',
             conversation: conversation ? {
                 id: conversation.id,
