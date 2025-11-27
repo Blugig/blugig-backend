@@ -16,8 +16,11 @@ freelancerRouter.get('/jobs', authenticate, jobController.getAllJobs);
 freelancerRouter.post('/job-details', authenticate, jobController.getJobDetails);
 freelancerRouter.get('/jobs/awarded', authenticate, jobController.getAwardedJobs);
 freelancerRouter.get('/jobs/pending', authenticate, jobController.getPendingJobs);
-
 freelancerRouter.post('/update-job-progress', authenticate, jobController.updateJobProgress);
+
+// Payment Routes
+freelancerRouter.post('/withdraw-earnings', authenticate, freelancerController.withdrawEarnings);
+freelancerRouter.get('/earnings-history', authenticate, freelancerController.getEarningsHistory);
 
 // Conversation Routes
 freelancerRouter.post('/conversations/create', authenticate, adminController.createConversation);

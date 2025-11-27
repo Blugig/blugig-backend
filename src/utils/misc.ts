@@ -71,3 +71,13 @@ export const PERMISSIONS = [
     "PMO",
     "LIR"
 ];
+
+import { Request } from 'express';
+
+export interface AuthenticatedRequest extends Request {
+    user: {
+        id: number;
+        userType: string;
+    }
+    file?: Express.Multer.File;
+}

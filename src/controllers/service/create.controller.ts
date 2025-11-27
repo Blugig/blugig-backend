@@ -4,14 +4,8 @@ import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import { generateFileUrl } from '../../lib/fileUpload';
 import { AwardedUserType, JobType, Prisma } from '@prisma/client';
-
-interface AuthenticatedRequest extends Request {
-    user?: {
-        id: number; // Assuming user ID is a number based on your prisma schema and usage
-        user_type: string;
-    };
-    file?: Express.Multer.File; // For file uploads, if using Multer
-}
+import { AuthenticatedRequest } from '@/utils/misc';
+import getStripe from '@/lib/stripe';
 
 // Leave a review
 export const createReview = async (req: Request, res: CustomResponse) => {
@@ -261,6 +255,16 @@ export const createCancellation = async (req: AuthenticatedRequest, res: CustomR
                         form_submission_id: parsedFormSubmissionId,
                     },
                 });
+
+                // const stripe = getStripe();
+                // const stripeRefund = await stripe.refunds.create({
+                //     payment_intent: "", // get the payment intent here
+                //     reason: 'requested_by_customer',
+                //     metadata: {
+                //         form_submission_id: parsedFormSubmissionId.toString(),
+                //     }
+                // });
+
             } else {
                 console.warn(`Refund record already exists for form ${parsedFormSubmissionId}. Skipping creation.`);
             }
@@ -282,7 +286,6 @@ export const createCancellation = async (req: AuthenticatedRequest, res: CustomR
     }
 };
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const DEFAULT_TAX_RATE_PERCENTAGE = 5; // 5%
 const DEFAULT_PLATFORM_FEE_RATE_PERCENTAGE = 10; // 10%
 
@@ -375,6 +378,8 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
         const stripeAmountInCents = Math.round(totalAmount.toNumber() * 100);
         const currency = 'usd'; // Hardcoded as per your original code
 
+        const stripe = getStripe();
+
         // 5. Create Stripe Customer, Ephemeral Key, and Payment Intent
         const customer = await stripe.customers.create({
             email: offer.user.email, // Use user's email for the Stripe customer
@@ -401,22 +406,69 @@ export const makePayment = async (req: AuthenticatedRequest, res: CustomResponse
         });
 
         // 6. Store payment details in your database
-        const newPaymentRecord = await prisma.payment.create({
-            data: {
-                client_secret: paymentIntent.client_secret as string,
-                customer_id: customer.id,
-                ephemeral_key_secret: ephemeralKey.secret,
-                tax_rate: taxRate,
-                platform_fee_rate: platformFeeRate,
-                base_amount: baseAmount,
-                tax_amount: taxAmount,
-                platform_fee_amount: platformFeeAmount,
-                discount_amount: discountAmount,
-                total_amount: totalAmount,
-                currency: currency,
-                user_id: uid,
-                offer_id: parsedOfferId,
+        const newPaymentRecord = await prisma.$transaction(async (px) => {
+            // Create the payment record
+            const paymentRecord = await px.payment.create({
+                data: {
+                    client_secret: paymentIntent.client_secret as string,
+                    customer_id: customer.id,
+                    ephemeral_key_secret: ephemeralKey.secret,
+                    tax_rate: taxRate,
+                    platform_fee_rate: platformFeeRate,
+                    base_amount: baseAmount,
+                    tax_amount: taxAmount,
+                    platform_fee_amount: platformFeeAmount,
+                    discount_amount: discountAmount,
+                    total_amount: totalAmount,
+                    currency: currency,
+                    user_id: uid,
+                    offer_id: parsedOfferId,
+                }
+            });
+
+            // Get the freelancer ID from the offer message
+            const freelancerId = offer.Message?.[0]?.sender_freelancer_id;
+
+            // Create transaction ledger for client payment to escrow
+            await px.transactionLedger.create({
+                data: {
+                    user_id: uid,
+                    freelancer_id: freelancerId || null,
+                    type: "client_payment_escrow",
+                    amount: totalAmount,
+                    description: `Payment for Offer #${offer.id}`,
+                    payment_id: paymentRecord.id,
+                }
+            });
+
+            // Create transaction ledger for freelancer earning (if freelancer exists)
+            if (freelancerId) {
+                await px.transactionLedger.create({
+                    data: {
+                        freelancer_id: freelancerId,
+                        type: "freelancer_earning",
+                        amount: totalAmount,
+                        description: `Earning for Offer #${offer.id}`,
+                        payment_id: paymentRecord.id,
+                    }
+                });
+
+                // Update or create freelancer wallet
+                await px.freelancerWallet.upsert({
+                    where: { user_id: freelancerId },
+                    update: {
+                        balance: { increment: totalAmount },
+                        total_earned: { increment: totalAmount },
+                    },
+                    create: {
+                        user_id: freelancerId,
+                        balance: totalAmount,
+                        total_earned: totalAmount,
+                    }
+                });
             }
+            
+            return paymentRecord;
         });
 
         // 7. Return necessary details to the client

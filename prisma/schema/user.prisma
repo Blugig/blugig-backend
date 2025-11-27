@@ -46,6 +46,7 @@ model User {
     payments      Payment[]
 
     feedbacks Feedback[]
+    transactions TransactionLedger[]
 
     // Job Relations (as client)
     posted_jobs Job[] @relation("JobClient")

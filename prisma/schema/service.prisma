@@ -46,37 +46,6 @@ model Cancellation {
     @@unique([user_id, form_submission_id])
 }
 
-enum RefundStatus {
-    received
-    approved
-    processing
-    bank_processing
-    completed
-    failed
-}
-
-model Refund {
-    id Int @id @default(autoincrement())
-
-    amount Decimal
-    status RefundStatus @default(received)
-
-    user_id Int  
-    user    User @relation(fields: [user_id], references: [id])
-
-    form_submission_id Int            @unique
-    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
-
-    // Job relation
-    job_id Int? @unique
-    job    Job? @relation("JobRefund", fields: [job_id], references: [id])
-
-    created_at DateTime @default(now())
-    updated_at DateTime @updatedAt
-
-    @@unique([user_id, form_submission_id])
-}
-
 enum ReportPriority {
     low
     medium
@@ -102,34 +71,4 @@ model Report {
 
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
-}
-
-model Payment {
-    id                   Int     @id @default(autoincrement())
-    client_secret        String
-    customer_id          String
-    ephemeral_key_secret String?
-
-    // Store percentages for audit/transparency
-    tax_rate          Decimal // 0 - 100
-    platform_fee_rate Decimal // 0 - 100
-
-    // Store calculated amounts
-    base_amount         Decimal // Original amount
-    tax_amount          Decimal // Calculated tax
-    platform_fee_amount Decimal // Calculated platform fee
-    discount_amount     Decimal
-    total_amount        Decimal // Final total
-    currency            String
-
-    user_id Int
-    user    User @relation(fields: [user_id], references: [id])
-
-    offer_id Int @unique
-    offer    Offer @relation(fields: [offer_id], references: [id])
-
-    created_at DateTime @default(now())
-    updated_at DateTime @updatedAt
-
-    @@unique([user_id, offer_id])
 }

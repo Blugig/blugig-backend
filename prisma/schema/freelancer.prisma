@@ -27,6 +27,9 @@ model Freelancer {
     awarded_jobs     Job[]          @relation("FreelancerAwardedJobs")
     conversations    Conversation[] @relation("FreelancerConversation")
     messages         Message[]      @relation("FreelancerMessage")
+    wallet           FreelancerWallet?
+    withdrawals      Withdrawal[]
+    transactions     TransactionLedger[]
 
     @@map("freelancers")
 }

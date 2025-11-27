@@ -23,6 +23,7 @@ adminRouter.get('/get-users', authenticate, adminController.getAllUsers);
 adminRouter.get('/get-user-details/:id', authenticate, adminController.getUserDetails);
 adminRouter.get('/get-freelancers', authenticate, adminController.getFreelancers);
 adminRouter.get('/get-freelancer-details/:id', authenticate, adminController.getFreelancerDetails);
+adminRouter.get('/get-withdrawals', authenticate, adminController.getFreelancerWithdrawals);
 adminRouter.get('/get-jobs', authenticate, adminController.getAllJobs);
 adminRouter.get('/get-job-details/:id', authenticate, adminController.getJobDetails);
 

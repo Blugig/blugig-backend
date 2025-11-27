@@ -1,4 +1,3 @@
-import { Request } from 'express';
 import bcrypt from 'bcrypt';
 
 import { prisma } from '../lib/prisma';
@@ -6,11 +5,11 @@ import CustomResponse from '../utils/customResponse';
 import sendVerificationEmail, { generateAccessToken } from '../utils/sendMail';
 import { createPaginatedResponse, getPagination } from '../utils/queryHelpers';
 import { basicUserFields } from '../lib/serializers/user';
-import { getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
+import { AuthenticatedRequest, getFormDescriptionKey, getFormName, getFormTitleKey } from '../utils/misc';
 import { formSelectFields } from '../lib/serializers/form';
 import { ConversationType } from '@prisma/client';
 
-export const login = async (req: Request, res: CustomResponse) => {
+export const login = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { email, password } = req.body;
 
@@ -56,7 +55,7 @@ export const login = async (req: Request, res: CustomResponse) => {
     }
 };
 
-export const getEmail = async (req: Request, res: CustomResponse) => {
+export const getEmail = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { uid } = req.body;
 
@@ -83,7 +82,7 @@ export const getEmail = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const verifyEmail = async (req: Request, res: CustomResponse) => {
+export const verifyEmail = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { uid, otp } = req.body;
 
@@ -132,7 +131,7 @@ export const verifyEmail = async (req: Request, res: CustomResponse) => {
     }
 };
 
-export const getDashboardData = async (req: Request, res: CustomResponse) => {
+export const getDashboardData = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const users = await prisma.user.count();
         const freelancers = await prisma.freelancer.count();
@@ -197,7 +196,7 @@ export const getDashboardData = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const getFreelancers = async (req: Request, res: CustomResponse) => {
+export const getFreelancers = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { page, take, skip } = getPagination(req);
         const { user_id, is_active, is_approved } = req.query;
@@ -237,7 +236,7 @@ export const getFreelancers = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const getFreelancerDetails = async (req: Request, res: CustomResponse) => {
+export const getFreelancerDetails = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { id } = req.params;
         const freelancerId = parseInt(id);
@@ -452,7 +451,7 @@ export const getFreelancerDetails = async (req: Request, res: CustomResponse) =>
     }
 }
 
-export const getAllJobs = async (req: Request, res: CustomResponse) => {
+export const getAllJobs = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { page, take, skip } = getPagination(req);
         const { job_type, awarded_to_user_type, client_id, job_id } = req.query;
@@ -561,7 +560,7 @@ export const getAllJobs = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const getJobDetails = async (req: Request, res: CustomResponse) => {
+export const getJobDetails = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { id, userType } = (req as any).user;
         const { id: jobId } = req.params;
@@ -770,7 +769,7 @@ export const getJobDetails = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const getAllUsers = async (req: Request, res: CustomResponse) => {
+export const getAllUsers = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { user_type, user_id } = req.query;
         const { page, take, skip } = getPagination(req);
@@ -798,7 +797,7 @@ export const getAllUsers = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const getUserDetails = async (req: Request, res: CustomResponse) => {
+export const getUserDetails = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { id } = req.params;
 
@@ -896,7 +895,7 @@ export const getUserDetails = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const createConversation = async (req: Request, res: CustomResponse) => {
+export const createConversation = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const { id, userType } = (req as any).user;
         const { userId, jobId } = req.body;
@@ -945,7 +944,7 @@ export const createConversation = async (req: Request, res: CustomResponse) => {
     }
 }
 
-export const getAllConversations = async (req: Request, res: CustomResponse) => {
+export const getAllConversations = async (req: AuthenticatedRequest, res: CustomResponse) => {
     try {
         const conversations = await prisma.conversation.findMany({
             include: {
@@ -989,5 +988,43 @@ export const getAllConversations = async (req: Request, res: CustomResponse) => 
         res.success("Chat sessions fetched successfully", conversations, 200);
     } catch (error) {
         res.failure("Failed to fetch chat sessions", error, 500);
+    }
+}
+
+export const getFreelancerWithdrawals = async (req: AuthenticatedRequest, res: CustomResponse) => {
+    try {
+        const { page, take, skip } = getPagination(req);
+        const { freelancer_id, status } = req.query;
+        
+        const where: any = {};
+        if (freelancer_id) where.user_id = parseInt(freelancer_id as string);
+        if (status && status !== 'all') where.status = status;
+
+        const [withdrawals, totalCount] = await Promise.all([
+            prisma.withdrawal.findMany({
+                where,
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone: true,
+                            country_code: true,
+                        }
+                    }
+                },
+                skip,
+                take,
+                orderBy: { created_at: 'desc' },
+            }),
+            prisma.withdrawal.count({ where }),
+        ]);
+
+        const paginatedResponse = createPaginatedResponse(withdrawals, totalCount, page, take);
+
+        res.success("Freelancer withdrawals fetched successfully", paginatedResponse, 200);
+    } catch (error) {
+        res.failure("Failed to fetch freelancer withdrawals", error, 500);
     }
 }

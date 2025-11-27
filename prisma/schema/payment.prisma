@@ -1,0 +1,141 @@
+enum RefundStatus {
+    received
+    approved
+    processing
+    bank_processing
+    completed
+    failed
+}
+
+model Refund {
+    id Int @id @default(autoincrement())
+
+    amount Decimal
+    status RefundStatus @default(received)
+
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
+
+    form_submission_id Int            @unique
+    form_submission    FormSubmission @relation(fields: [form_submission_id], references: [id])
+
+    // Job relation
+    job_id Int? @unique
+    job    Job? @relation("JobRefund", fields: [job_id], references: [id])
+
+    created_at        DateTime            @default(now())
+    updated_at        DateTime            @updatedAt
+    TransactionLedger TransactionLedger[]
+
+    @@unique([user_id, form_submission_id])
+}
+
+model Payment {
+    id                   Int     @id @default(autoincrement())
+    client_secret        String
+    customer_id          String
+    ephemeral_key_secret String?
+
+    // Store percentages for audit/transparency
+    tax_rate          Decimal // 0 - 100
+    platform_fee_rate Decimal // 0 - 100
+
+    // Store calculated amounts
+    base_amount         Decimal // Original amount
+    tax_amount          Decimal // Calculated tax
+    platform_fee_amount Decimal // Calculated platform fee
+    discount_amount     Decimal
+    total_amount        Decimal // Final total
+    currency            String
+
+    user_id Int
+    user    User @relation(fields: [user_id], references: [id])
+
+    offer_id Int   @unique
+    offer    Offer @relation(fields: [offer_id], references: [id])
+
+    created_at        DateTime            @default(now())
+    updated_at        DateTime            @updatedAt
+    TransactionLedger TransactionLedger[]
+
+    @@unique([user_id, offer_id])
+}
+
+model FreelancerWallet {
+    id Int @id @default(autoincrement())
+
+    // The foreign key to the User whose balance this is
+    user_id Int        @unique
+    user    Freelancer @relation(fields: [user_id], references: [id])
+
+    // The current available balance. MUST be kept in sync with the Ledger.
+    balance      Decimal @default(0.00)
+    total_earned Decimal @default(0.00)
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+enum WithdrawalStatus {
+    requested
+    processing
+    completed
+    failed
+}
+
+model Withdrawal {
+    id Int @id @default(autoincrement())
+
+    amount Decimal
+    status WithdrawalStatus @default(requested)
+
+    user_id Int
+    user    Freelancer @relation(fields: [user_id], references: [id])
+
+    created_at        DateTime            @default(now())
+    updated_at        DateTime            @updatedAt
+    TransactionLedger TransactionLedger[]
+}
+
+enum TransactionType {
+    client_payment_escrow // Client funds are received into the platform's escrow (a credit to the platform)
+    freelancer_earning // Funds transferred from platform escrow to freelancer's wallet (credit to freelancer)
+    freelancer_withdrawal // Funds withdrawn by freelancer to their bank (debit to freelancer)
+    refund_to_client // Funds returned to client (debit to the platform)
+}
+
+// The immutable, auditable log of ALL money movement.
+model TransactionLedger {
+    id Int @id @default(autoincrement())
+
+    user_id Int? // The client ID whose balance or activity is affected
+    user    User? @relation(fields: [user_id], references: [id])
+
+    freelancer_id Int? // The freelancer ID whose balance or activity is affected
+    freelancer    Freelancer? @relation(fields: [freelancer_id], references: [id])
+
+    // 2. What happened?
+    type TransactionType
+
+    // The amount. Positive for credit (money in), Negative for debit (money out).
+    amount Decimal
+
+    // 3. Why did it happen? (Links back to the source document)
+    // NOTE: Using Int? allows a single ledger to link to multiple source models.
+    payment_id Int?
+    payment    Payment? @relation(fields: [payment_id], references: [id])
+
+    refund_id Int?
+    refund    Refund? @relation(fields: [refund_id], references: [id])
+
+    withdrawal_id Int?
+    withdrawal    Withdrawal? @relation(fields: [withdrawal_id], references: [id])
+
+    // A snapshot description for easy reading (e.g., "Earning for Job #123")
+    description String
+
+    created_at DateTime @default(now())
+
+    // Optional: Reference ID from an external PSP (Stripe, PayPal, etc.)
+    external_ref String?
+}
