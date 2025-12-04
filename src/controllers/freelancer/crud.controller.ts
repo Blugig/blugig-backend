@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import sendVerificationEmail, { generateAccessToken, sendCredentialEmail } from '../../utils/sendMail';
-import { AuthenticatedRequest } from '@/utils/misc';
+import { AuthenticatedRequest } from '../../utils/misc';
 
 export const login = async (req: Request, res: CustomResponse) => {
     try {

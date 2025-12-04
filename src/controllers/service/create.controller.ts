@@ -4,8 +4,8 @@ import { prisma } from '../../lib/prisma';
 import CustomResponse from '../../utils/customResponse';
 import { generateFileUrl } from '../../lib/fileUpload';
 import { AwardedUserType, JobType, Prisma } from '@prisma/client';
-import { AuthenticatedRequest } from '@/utils/misc';
-import getStripe from '@/lib/stripe';
+import { AuthenticatedRequest } from '../../utils/misc';
+import getStripe from '../../lib/stripe';
 
 // Leave a review
 export const createReview = async (req: Request, res: CustomResponse) => {
