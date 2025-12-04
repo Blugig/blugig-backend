@@ -15,7 +15,7 @@ export const getProfile = async (req: Request, res: CustomResponse) => {
 
         if (userType === 'admin') {
             user = await prisma.admin.findUnique({
-                where: { id },
+                where: { id: parseInt(id) },
                 select: {
                     id: true,
                     profile_photo: true,

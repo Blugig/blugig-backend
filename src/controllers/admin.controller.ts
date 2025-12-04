@@ -202,7 +202,7 @@ export const getFreelancers = async (req: AuthenticatedRequest, res: CustomRespo
         const { user_id, is_active, is_approved } = req.query;
 
         const where: any = {};
-        if (user_id) where.id = user_id;
+        if (user_id) where.id = parseInt(user_id as string);
         if (is_active !== 'all') where.is_active = is_active === 'true';
         if (is_approved !== 'all') where.is_approved = is_approved === 'true';
 
@@ -776,7 +776,7 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: CustomResponse
 
         const where: any = {};
         if (user_type) where.user_type = user_type;
-        if (user_id) where.id = user_id;
+        if (user_id) where.id = parseInt(user_id as string);
 
         const [users, totalCount] = await Promise.all([
             prisma.user.findMany({

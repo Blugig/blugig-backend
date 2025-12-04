@@ -60,6 +60,7 @@ export const getAllFormsOfType = async (req: Request, res: CustomResponse) => {
 
             return {
                 ...details,
+                status: sub.status,
                 user: sub.user ? { id: sub.user.id, name: sub.user.name } : null
             };
         });
